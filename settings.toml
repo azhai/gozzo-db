@@ -1,0 +1,17 @@
+[application]
+    output_dir   = "./models"  #models输出目录
+    table_prefix = "t_"        #表名前缀
+    plural_table = true        #表名是否使用复数
+
+[connections.default]
+    driver   = "mysql"         #数据库类型
+    host     = "127.0.0.1"
+    port     = 3306
+    username = "root"
+    password = ""
+    database = "test"
+    options  = {charset="utf8mb4"}
+
+[connections.sqlite]
+    driver   = "sqlite"
+    database = "./test.db"

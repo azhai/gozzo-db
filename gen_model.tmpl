@@ -1,0 +1,15 @@
+// {{.Table.TableComment}}
+type {{.Name}} struct {
+    base.Model
+{{- range .Columns }}
+    {{- if eq .FieldName "id" }}
+    {{- else }}
+        {{toCamel .FieldName}} {{genType .}} {{genTags .}} // {{.Comment}}
+    {{- end }}
+{{- end }}
+}
+
+// 数据表名为 {{.Table.TableName}}
+func ({{.Name}}) TableName() string {
+    return "{{.Table.TableName}}"
+}
