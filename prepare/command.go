@@ -48,15 +48,25 @@ func CreateModels(db *gorm.DB, app AppConfig) (names []string, err error) {
 
 func GenModelCode(name string, table schema.TableInfo, columns []*schema.ColumnInfo) ([]byte, error) {
 	funs := template.FuncMap{
-		"toCamel": utils.ToCamel,
-		"genType": construct.GuessTypeName,
-		"genTags": func(col *schema.ColumnInfo) string {
-			var blank string
+		"genNameType": func(col *schema.ColumnInfo) string {
+			name := utils.ToCamel(col.FieldName)
+			if name == "DeletedAt" {
+				return name + " *time.Time"
+			}
+			tpname := construct.GuessTypeName(col)
+			return name + " " + tpname
+		},
+		"genTagComment": func(col *schema.ColumnInfo) string {
+			var blank, comment string
 			tags := construct.GuessStructTags(col)
 			if tags != "" {
 				blank = " "
 			}
-			return fmt.Sprintf("`json:\"%s\"%s%s`", col.FieldName, blank, tags)
+			if col.Comment != "" {
+				comment = " // " + col.Comment
+			}
+			tpl := "`json:\"%s\"%s%s`%s"
+			return fmt.Sprintf(tpl, col.FieldName, blank, tags, comment)
 		},
 	}
 	data := map[string]interface{}{

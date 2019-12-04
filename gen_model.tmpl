@@ -4,7 +4,7 @@ type {{.Name}} struct {
 {{- range .Columns }}
     {{- if eq .FieldName "id" }}
     {{- else }}
-        {{toCamel .FieldName}} {{genType .}} {{genTags .}} // {{.Comment}}
+        {{genNameType .}} {{genTagComment .}}
     {{- end }}
 {{- end }}
 }
