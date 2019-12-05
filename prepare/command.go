@@ -36,10 +36,11 @@ func CreateModels(db *gorm.DB, app AppConfig) (names []string, err error) {
 		}
 		cs := rewrite.NewCodeSource()
 		err = cs.SetPackage("models")
-		cs.AddImport("github.com/jinzhu/gorm", "")
 		cs.AddImport("github.com/azhai/gozzo-db/construct", "base")
+		cs.AddImport("github.com/jinzhu/gorm", "")
 		cs.AddImport("time", "")
 		err = cs.AddCode(code)
+		cs.DelImport("github.com/jinzhu/gorm", "")
 		cs.DelImport("time", "")
 		err = cs.WriteTo(fname)
 	}
