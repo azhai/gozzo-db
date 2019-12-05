@@ -18,6 +18,8 @@ func GuessTypeName(ci *schema.ColumnInfo) string {
 	case "TINYINT":
 		if strings.HasPrefix(ci.FullType, "tinyint(1)") {
 			return "bool"
+		} else if strings.HasPrefix(ci.FullType, "tinyint(3)") {
+			return "uint8"
 		} else {
 			return "int"
 		}
