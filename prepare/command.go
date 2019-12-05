@@ -14,8 +14,9 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-func CreateModels(db *gorm.DB, app AppConfig) (names []string, err error) {
+func CreateModels(db *gorm.DB, conf *Config) (names []string, err error) {
 	var fname string
+	app := conf.Application
 	s := schema.NewSchema(db.DB())
 	for i, table := range s.GetTableNames("") {
 		cols := s.GetColumnInfos(table, "")
@@ -28,7 +29,7 @@ func CreateModels(db *gorm.DB, app AppConfig) (names []string, err error) {
 		}
 		name := utils.ToCamel(table)
 		names = append(names, name)
-		code, _ := GenModelCode(name, tbInfo, cols)
+		code, _ := GenModelCode(name, tbInfo, cols, conf.GetRules(tbInfo.TableName))
 
 		fname = fmt.Sprintf("%s/%s.go", app.OutputDir, table)
 		if i == 0 {
@@ -47,27 +48,43 @@ func CreateModels(db *gorm.DB, app AppConfig) (names []string, err error) {
 	return
 }
 
-func GenModelCode(name string, table schema.TableInfo, columns []*schema.ColumnInfo) ([]byte, error) {
+func GenModelCode(name string, table schema.TableInfo, columns []*schema.ColumnInfo, rules TableRuleConfig) ([]byte, error) {
 	funs := template.FuncMap{
 		"genNameType": func(col *schema.ColumnInfo) string {
-			name := utils.ToCamel(col.FieldName)
-			if name == "DeletedAt" {
-				return name + " *time.Time"
+			rule := RuleConfig{}
+			if colRule, ok := rules[col.FieldName]; ok {
+				rule = colRule
 			}
-			tpname := construct.GuessTypeName(col)
-			return name + " " + tpname
+			if rule.Name == "" {
+				rule.Name = utils.ToCamel(col.FieldName)
+			}
+			if rule.Type == "" {
+				rule.Type = construct.GuessTypeName(col)
+			}
+			return rule.Name + " " + rule.Type
 		},
 		"genTagComment": func(col *schema.ColumnInfo) string {
 			var blank, comment string
-			tags := construct.GuessStructTags(col)
-			if tags != "" {
+			rule := RuleConfig{}
+			if colRule, ok := rules[col.FieldName]; ok {
+				rule = colRule
+			}
+			if rule.Json == "" {
+				rule.Json = col.FieldName
+			}
+			if rule.Tags == "" {
+				rule.Tags = construct.GuessStructTags(col)
+			}
+			if rule.Tags != "" {
 				blank = " "
 			}
 			if col.Comment != "" {
 				comment = " // " + col.Comment
+			} else if rule.Comment != "" {
+				comment = " // " + rule.Comment
 			}
 			tpl := "`json:\"%s\"%s%s`%s"
-			return fmt.Sprintf(tpl, col.FieldName, blank, tags, comment)
+			return fmt.Sprintf(tpl, rule.Json, blank, rule.Tags, comment)
 		},
 	}
 	data := map[string]interface{}{

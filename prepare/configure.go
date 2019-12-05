@@ -30,14 +30,26 @@ type AppConfig struct {
 
 // 连接配置
 type ConnConfig struct {
-	Driver  string `toml:"driver"`
+	Driver string `toml:"driver"`
 	schema.ConnParams
 }
+
+// 规则配置
+type RuleConfig struct {
+	Name    string `toml:"name"`
+	Type    string `toml:"type"`
+	Json    string `toml:"json"`
+	Tags    string `toml:"tags"`
+	Comment string `toml:"comment"`
+}
+
+type TableRuleConfig map[string]RuleConfig
 
 // 配置
 type Config struct {
 	Application AppConfig
 	Connections map[string]ConnConfig
+	ModelRules  map[string]TableRuleConfig
 }
 
 func (c Config) GetDSN(name string) (string, string) {
@@ -49,4 +61,18 @@ func (c Config) GetDSN(name string) (string, string) {
 		}
 	}
 	return name, ""
+}
+
+func (c Config) GetRules(table string) (rules TableRuleConfig) {
+	if baseRules, ok := c.ModelRules["_"]; ok {
+		rules = baseRules
+	} else {
+		rules = TableRuleConfig{}
+	}
+	if tableRules, ok := c.ModelRules[table]; ok {
+		for name, colRule := range tableRules {
+			rules[name] = colRule
+		}
+	}
+	return
 }

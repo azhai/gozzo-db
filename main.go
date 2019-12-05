@@ -41,7 +41,7 @@ func main() {
 	if verbose {
 		db.LogMode(true).SetLogger(log.New(os.Stdout, "\r\n", 0))
 	}
-	names, _ := prepare.CreateModels(db, conf.Application)
+	names, _ := prepare.CreateModels(db, conf)
 	if drv == "sqlite3" {
 		drv = "sqlite" // Sqlite的import包名和Open()驱动名不一样
 	}
