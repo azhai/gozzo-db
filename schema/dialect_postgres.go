@@ -48,7 +48,7 @@ func (d Postgres) CurrDbNameSql() string {
 
 func (Postgres) tableNameTpl() string {
 	return utils.TrimTail(`
-			SELECT table_name, table_comment, table_rows
+			SELECT table_name, table_schema, table_rows, table_comment
 			FROM
 				information_schema.tables
 			WHERE
@@ -56,14 +56,24 @@ func (Postgres) tableNameTpl() string {
 		`)
 }
 
-func (d Postgres) TableNameSql(dbname string) string {
-	dbname = d.dbNameVal(dbname)
-	return fmt.Sprintf(d.tableNameTpl(), "BASE TABLE", dbname)
+func (d Postgres) TableNameSql(dbname string, more bool) string {
+	if more {
+		dbcond := "LIKE " + utils.WrapWith(dbname, "'", "%'")
+		return fmt.Sprintf(d.tableNameTpl(), "BASE TABLE", dbcond)
+	} else {
+		dbcond := "= " + d.dbNameVal(dbname)
+		return fmt.Sprintf(d.tableNameTpl(), "BASE TABLE", dbcond)
+	}
 }
 
-func (d Postgres) ViewNameSql(dbname string) string {
-	dbname = d.dbNameVal(dbname)
-	return fmt.Sprintf(d.tableNameTpl(), "VIEW", dbname)
+func (d Postgres) ViewNameSql(dbname string, more bool) string {
+	if more {
+		dbcond := "LIKE " + utils.WrapWith(dbname, "'", "%'")
+		return fmt.Sprintf(d.tableNameTpl(), "VIEW", dbcond)
+	} else {
+		dbcond := "= " + d.dbNameVal(dbname)
+		return fmt.Sprintf(d.tableNameTpl(), "VIEW", dbcond)
+	}
 }
 
 func (Postgres) ColumnTypeSql(fullTableName string) string {

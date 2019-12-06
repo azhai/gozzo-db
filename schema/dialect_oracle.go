@@ -29,7 +29,7 @@ func (Oracle) QuoteIdent(ident string) string {
 
 func (Oracle) dbNameVal(dbname string) string {
 	if dbname == "" {
-		return "''"
+		return "SELECT SYS_CONTEXT('userenv', 'current_schema') FROM DUAL"
 	} else {
 		return utils.WrapWith(dbname, "'", "'")
 	}
@@ -40,22 +40,27 @@ func (Oracle) CurrDbNameSql() string {
 }
 
 func (Oracle) tableNameTpl() string {
-	return utils.TrimTail(`
-			SELECT table_name
-			FROM all_tables
-			WHERE owner IN (
-				SELECT SYS_CONTEXT('userenv', 'current_schema')
-				FROM DUAL
-			)
-		`)
+	return "SELECT %s, owner, num_rows* FROM %s WHERE owner %s"
 }
 
-func (d Oracle) TableNameSql(dbname string) string {
-	return fmt.Sprintf(d.tableNameTpl(), "all_tables")
+func (d Oracle) TableNameSql(dbname string, more bool) string {
+	if more {
+		dbcond := "LIKE " + utils.WrapWith(dbname, "'", "%'")
+		return fmt.Sprintf(d.tableNameTpl(), "table_name", "all_tables", dbcond)
+	} else {
+		dbcond := "IN (" + d.dbNameVal(dbname) + ")"
+		return fmt.Sprintf(d.tableNameTpl(), "table_name", "all_tables", dbcond)
+	}
 }
 
-func (d Oracle) ViewNameSql(dbname string) string {
-	return fmt.Sprintf(d.tableNameTpl(), "all_views")
+func (d Oracle) ViewNameSql(dbname string, more bool) string {
+	if more {
+		dbcond := "LIKE " + utils.WrapWith(dbname, "'", "%'")
+		return fmt.Sprintf(d.tableNameTpl(), "view_name", "all_views", dbcond)
+	} else {
+		dbcond := "IN (" + d.dbNameVal(dbname) + ")"
+		return fmt.Sprintf(d.tableNameTpl(), "view_name", "all_views", dbcond)
+	}
 }
 
 func (Oracle) ColumnTypeSql(fullTableName string) string {
@@ -68,7 +73,7 @@ func (d Oracle) ColumnInfoSql(table, dbname string) string {
 				column_name, column_type, column_key,
 				column_default, extra, column_comment
 			FROM
-				information_schema.columns
+				cols
 			WHERE
 				table_name = '%s' AND table_schema = %s
 			ORDER BY ordinal_position

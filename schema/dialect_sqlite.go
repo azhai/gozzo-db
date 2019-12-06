@@ -45,11 +45,11 @@ func (Sqlite) tableNameTpl() string {
 		`)
 }
 
-func (d Sqlite) TableNameSql(dbname string) string {
+func (d Sqlite) TableNameSql(dbname string, more bool) string {
 	return fmt.Sprintf(d.tableNameTpl(), "table")
 }
 
-func (d Sqlite) ViewNameSql(dbname string) string {
+func (d Sqlite) ViewNameSql(dbname string, more bool) string {
 	return fmt.Sprintf(d.tableNameTpl(), "view")
 }
 

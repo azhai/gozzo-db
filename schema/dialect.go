@@ -38,8 +38,8 @@ type Dialect interface {
 	GetDSN(params ConnParams) (string, string)
 	QuoteIdent(ident string) string
 	CurrDbNameSql() string
-	TableNameSql(dbname string) string
-	ViewNameSql(dbname string) string
+	TableNameSql(dbname string, more bool) string
+	ViewNameSql(dbname string, more bool) string
 	ColumnTypeSql(fullTableName string) string
 	ColumnInfoSql(table, dbname string) string
 }
@@ -141,37 +141,36 @@ func (s *Schema) GetTableNames(dbname string) (names []string) {
 			dbname = s.GetCurrDbName()
 		}
 		if _, ok := s.tables[dbname]; !ok {
-			s.tables[dbname] = s.AllTableInfos(dbname)
+			s.tables[dbname] = s.AllTableInfos(dbname, false)
 		}
 		for name := range s.tables[dbname] {
 			names = append(names, name)
 		}
 	} else {
-		dsql := s.Dialect.TableNameSql(dbname)
+		dsql := s.Dialect.TableNameSql(dbname, false)
 		names = s.GetStrings(dsql)
 	}
 	return
 }
 
 func (s *Schema) GetViewNames(dbname string) (names []string) {
-	dsql := s.Dialect.ViewNameSql(dbname)
+	dsql := s.Dialect.ViewNameSql(dbname, false)
 	names = s.GetStrings(dsql)
 	return
 }
 
-func (s *Schema) AllTableInfos(dbname string) map[string]TableInfo {
-	ti := TableInfo{
-		DbName: dbname,
-		Quote:  s.Dialect.QuoteIdent,
-	}
-	dsql := s.Dialect.TableNameSql(dbname)
+func (s *Schema) AllTableInfos(dbname string, more bool) map[string]TableInfo {
+	ti := TableInfo{Quote: s.Dialect.QuoteIdent}
+	dsql := s.Dialect.TableNameSql(dbname, more)
 	infos := make(map[string]TableInfo)
 	_ = s.Query(func(rows *sql.Rows) (err error) {
 		for rows.Next() {
-			if s.DriverName == "mysql" || s.DriverName == "postgres" {
-				err = rows.Scan(&ti.TableName, &ti.TableComment, &ti.TableRows)
-			} else {
+			if s.DriverName == "sqlite" {
 				err = rows.Scan(&ti.TableName)
+			} else if s.DriverName == "oracle" {
+				err = rows.Scan(&ti.TableName, &ti.DbName, &ti.TableRows)
+			} else {
+				err = rows.Scan(&ti.TableName, &ti.DbName, &ti.TableRows, &ti.TableComment)
 			}
 			if ti.TableName != "" {
 				infos[ti.TableName] = ti
@@ -182,10 +181,31 @@ func (s *Schema) AllTableInfos(dbname string) map[string]TableInfo {
 	return infos
 }
 
+func (s *Schema) ListTable(dbname string, refresh bool) (tables map[string]TableInfo) {
+	var ok bool
+	if dbname == "" {
+		dbname = s.GetCurrDbName()
+	}
+	more := strings.HasSuffix(dbname, "%")
+	if tables, ok = s.tables[dbname]; !ok || more || refresh {
+		tables = s.AllTableInfos(dbname, more)
+		for name, info := range tables {
+			if _, ok = s.tables[info.DbName]; !ok {
+				s.tables[info.DbName] = make(map[string]TableInfo)
+			}
+			s.tables[info.DbName][name] = tables[name]
+		}
+	}
+	return
+}
+
 func (s *Schema) GetTableInfo(table, dbname string) (tbInfo TableInfo) {
 	var ok bool
+	if dbname == "" {
+		dbname = s.GetCurrDbName()
+	}
 	if _, ok = s.tables[dbname]; !ok {
-		s.tables[dbname] = s.AllTableInfos(dbname)
+		s.tables[dbname] = s.AllTableInfos(dbname, false)
 	}
 	if tbInfo, ok = s.tables[dbname][table]; !ok {
 		tbInfo = TableInfo{

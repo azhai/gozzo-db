@@ -45,24 +45,32 @@ func (d Mssql) CurrDbNameSql() string {
 
 func (Mssql) tableNameTpl() string {
 	return utils.TrimTail(`
-			SELECT T.name as name
+			SELECT table_name, table_catalog, table_rows, table_comment
 			FROM
-				sys.%s AS T
-				INNER JOIN sys.schemas AS S ON S.schema_id = T.schema_id
-				LEFT JOIN sys.extended_properties AS EP ON EP.major_id = T.[object_id]
+				information_schema.tables
 			WHERE
-				T.is_ms_shipped = 0 AND
-				(EP.class_desc IS NULL OR (EP.class_desc <> 'OBJECT_OR_COLUMN' AND
-				EP.[name] <> 'microsoft_database_tools_support'))
+				table_type = '%s' AND table_catalog %s
 		`)
 }
 
-func (d Mssql) TableNameSql(dbname string) string {
-	return fmt.Sprintf(d.tableNameTpl(), "tables")
+func (d Mssql) TableNameSql(dbname string, more bool) string {
+	if more {
+		dbcond := "LIKE " + utils.WrapWith(dbname, "'", "%'")
+		return fmt.Sprintf(d.tableNameTpl(), "BASE TABLE", dbcond)
+	} else {
+		dbcond := "= " + d.dbNameVal(dbname)
+		return fmt.Sprintf(d.tableNameTpl(), "BASE TABLE", dbcond)
+	}
 }
 
-func (d Mssql) ViewNameSql(dbname string) string {
-	return fmt.Sprintf(d.tableNameTpl(), "views")
+func (d Mssql) ViewNameSql(dbname string, more bool) string {
+	if more {
+		dbcond := "LIKE " + utils.WrapWith(dbname, "'", "%'")
+		return fmt.Sprintf(d.tableNameTpl(), "VIEW", dbcond)
+	} else {
+		dbcond := "= " + d.dbNameVal(dbname)
+		return fmt.Sprintf(d.tableNameTpl(), "VIEW", dbcond)
+	}
 }
 
 func (Mssql) ColumnTypeSql(fullTableName string) string {

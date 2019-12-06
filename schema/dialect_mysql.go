@@ -48,22 +48,32 @@ func (d Mysql) CurrDbNameSql() string {
 
 func (Mysql) tableNameTpl() string {
 	return utils.TrimTail(`
-			SELECT table_name, table_comment, table_rows
+			SELECT table_name, table_schema, table_rows, table_comment
 			FROM
 				information_schema.tables
 			WHERE
-				table_type = '%s' AND table_schema = %s
+				table_type = '%s' AND table_schema %s
 		`)
 }
 
-func (d Mysql) TableNameSql(dbname string) string {
-	dbname = d.dbNameVal(dbname)
-	return fmt.Sprintf(d.tableNameTpl(), "BASE TABLE", dbname)
+func (d Mysql) TableNameSql(dbname string, more bool) string {
+	if more {
+		dbcond := "LIKE " + utils.WrapWith(dbname, "'", "%'")
+		return fmt.Sprintf(d.tableNameTpl(), "BASE TABLE", dbcond)
+	} else {
+		dbcond := "= " + d.dbNameVal(dbname)
+		return fmt.Sprintf(d.tableNameTpl(), "BASE TABLE", dbcond)
+	}
 }
 
-func (d Mysql) ViewNameSql(dbname string) string {
-	dbname = d.dbNameVal(dbname)
-	return fmt.Sprintf(d.tableNameTpl(), "VIEW", dbname)
+func (d Mysql) ViewNameSql(dbname string, more bool) string {
+	if more {
+		dbcond := "LIKE " + utils.WrapWith(dbname, "'", "%'")
+		return fmt.Sprintf(d.tableNameTpl(), "VIEW", dbcond)
+	} else {
+		dbcond := "= " + d.dbNameVal(dbname)
+		return fmt.Sprintf(d.tableNameTpl(), "VIEW", dbcond)
+	}
 }
 
 func (Mysql) ColumnTypeSql(fullTableName string) string {
