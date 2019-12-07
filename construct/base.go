@@ -19,11 +19,21 @@ type FilterFunc = func(query *gorm.DB) *gorm.DB
  * 使用方法 total, err := Paginate(query, &rows, pageno, pagesize)
  */
 func Paginate(query *gorm.DB, out interface{}, pageno, pagesize int) (total int, err error) {
-	offset := (pageno - 1) * pagesize
-	if pagesize <= 0 || offset < 0 {
-		return // 页码或页长错误
+	query = query.Count(&total)
+	offset, limit := -1, -1 // 这也是gorm的初始值
+	// 参数校正
+	if pagesize >= 0 {
+		limit = pagesize
+		if page >= 0 {
+			offset = (pageno - 1) * pagesize
+		} else if page < 0 {
+			offset = total + pageno * pagesize
+		}
 	}
-	err = query.Count(&total).Limit(pagesize).Offset(offset).Find(out).Error
+	if offset < 0 {
+		offset = -1
+	}
+	err = query.Limit(limit).Offset(offset).Find(out).Error
 	if err != nil && gorm.IsRecordNotFoundError(err) {
 		err = nil // 忽略没有数据的错误
 	}
