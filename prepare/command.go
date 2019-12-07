@@ -123,6 +123,7 @@ func GenInitFile(names []string, app AppConfig, fileName, diaName, drvName strin
 		fname := fmt.Sprintf("%s/init.go", app.OutputDir)
 		cs := rewrite.NewCodeSource()
 		err = cs.SetPackage("models")
+		cs.AddImport("github.com/azhai/gozzo-db/construct", "base")
 		cs.AddImport("github.com/azhai/gozzo-db/prepare", "")
 		cs.AddImport("github.com/jinzhu/gorm", "")
 		cs.AddImport("github.com/jinzhu/gorm/dialects/"+drvName, "_")

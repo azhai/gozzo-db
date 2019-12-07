@@ -1,37 +1,49 @@
 var db *gorm.DB
 
+type BaseModel = base.Model
+
 // 连接数据库
 func init() {
 {{- if ne .Prefix "" }}
 	/*
 	// TableName()中已经是完整表名，这段代码不再需要
-	gorm.DefaultTableNameHandler = func(db *gorm.DB, name string) string  {
+	gorm.DefaultTableNameHandler = func(db *gorm.DB, name string) string {
 		return "{{.Prefix}}" + name // 自动加上表名前缀
 	}
 	*/
 {{- end }}
-    var err error
-    conf := prepare.GetConfig("{{.FileName}}")
-    db, err = gorm.Open(conf.GetDSN("{{.DiaName}}"))
-    if err == nil {
-        MigrateTables(db)
-    }
+	var err error
+	conf := prepare.GetConfig("{{.FileName}}")
+	db, err = gorm.Open(conf.GetDSN("{{.DiaName}}"))
+	if err == nil {
+		MigrateTables(db)
+	}
 }
 
+// 获取当前db
 func Query() *gorm.DB {
-    return db
+	return db
 }
 
+// 查询某张数据表
 func QueryTable(name string) *gorm.DB {
-    return db.Table(name)
+	return db.Table(name)
+}
+
+// 忽略表中无数据的错误
+func IgnoreNotFoundError(err error) error {
+	if err == nil || gorm.IsRecordNotFoundError(err) {
+		return nil
+	}
+	return err
 }
 
 // 自动建表，如果缺少表或字段会加上
 func MigrateTables(db *gorm.DB) *gorm.DB {
 {{- if .Plural }}
-    db.SingularTable(false)
+	db.SingularTable(false)
 {{- else }}
-    db.SingularTable(true)
+	db.SingularTable(true)
 {{- end }}
-    return db.AutoMigrate({{.Models}})
+	return db.AutoMigrate({{.Models}})
 }
