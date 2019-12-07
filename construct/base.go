@@ -24,9 +24,9 @@ func Paginate(query *gorm.DB, out interface{}, pageno, pagesize int) (total int,
 	// 参数校正
 	if pagesize >= 0 {
 		limit = pagesize
-		if page >= 0 {
+		if pageno >= 0 {
 			offset = (pageno - 1) * pagesize
-		} else if page < 0 {
+		} else if pageno < 0 {
 			offset = total + pageno * pagesize
 		}
 	}
