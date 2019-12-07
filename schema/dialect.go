@@ -32,7 +32,7 @@ var dialects = map[string]Dialect{
 	"sqlite":   &Sqlite{},
 }
 
-type FetchFunc func(rows *sql.Rows) (err error)
+type FetchFunc = func(rows *sql.Rows) (err error)
 
 type Dialect interface {
 	GetDSN(params ConnParams) (string, string)

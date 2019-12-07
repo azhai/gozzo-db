@@ -38,6 +38,7 @@ func (st *SqlTag) ParseTag(tag reflect.StructTag) {
 	}
 }
 
+// 转为字符串格式，头通常使用sql或gorm
 func (st *SqlTag) String(head string) string {
 	if !st.changed {
 		return string(st.StructTag)
@@ -52,7 +53,7 @@ func (st *SqlTag) String(head string) string {
 	}
 	var result string
 	if len(pairs) > 0 {
-		sort.Sort(sort.Reverse(sort.StringSlice(pairs))) // 倒序排列
+		sort.Sort(sort.Reverse(sort.StringSlice(pairs))) // 反向排序，将重要标注靠前
 		result = fmt.Sprintf(`%s:"%s"`, head, strings.Join(pairs, ";"))
 	}
 	st.StructTag = reflect.StructTag(result)

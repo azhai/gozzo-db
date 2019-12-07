@@ -10,9 +10,9 @@ type Model struct {
 
 /**
  * 过滤查询
- * 使用方法 query = query.Scopes(filter FilterFunc)
+ * 使用方法 query = query.Scopes(filters ...FilterFunc)
  */
-type FilterFunc func(query *gorm.DB) *gorm.DB
+type FilterFunc = func(query *gorm.DB) *gorm.DB
 
 /**
  * 翻页查询，out参数需要传引用

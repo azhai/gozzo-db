@@ -43,7 +43,7 @@ type RuleConfig struct {
 	Comment string `toml:"comment"`
 }
 
-type TableRuleConfig map[string]RuleConfig
+type TableRuleConfig = map[string]RuleConfig
 
 // 配置
 type Config struct {

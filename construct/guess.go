@@ -7,6 +7,7 @@ import (
 	"github.com/azhai/gozzo-db/schema"
 )
 
+// 根据数据库字段类型猜测Go类型，适用于mysql或pgsql
 func GuessTypeName(ci *schema.ColumnInfo) string {
 	switch ci.DatabaseTypeName() {
 	default:
@@ -44,6 +45,7 @@ func GuessTypeName(ci *schema.ColumnInfo) string {
 	}
 }
 
+// 根据数据库字段属性设置Struct tags
 func GuessStructTags(ci *schema.ColumnInfo) string {
 	tag := NewSqlTag()
 	if ci.IsIndex() {
