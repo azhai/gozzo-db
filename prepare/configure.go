@@ -3,16 +3,22 @@ package prepare
 import (
 	"github.com/BurntSushi/toml"
 	"github.com/azhai/gozzo-db/schema"
+	"github.com/azhai/gozzo-db/utils"
 )
 
 // 解析配置和创建日志
-func GetConfig(filename string) *Config {
-	var conf = &Config{}
-	_, err := toml.DecodeFile(filename, &conf)
-	if err == nil {
-		return conf
+func GetConfig(fileName string) (*Config, error) {
+	var conf = new(Config)
+	fullPath := utils.GetAbsFile(fileName)
+	_, err := toml.DecodeFile(fullPath, &conf)
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	conf.FileName = fileName
+	if conf.ConnName == "" {
+		conf.ConnName = "default"
+	}
+	return conf, nil
 }
 
 /**
@@ -23,14 +29,15 @@ func GetConfig(filename string) *Config {
 
 // 应用配置
 type AppConfig struct {
+	Debug       bool   `toml:"debug"`
 	OutputDir   string `toml:"output_dir"`
-	TablePrefix string `toml:"table_prefix"`
 	PluralTable bool   `toml:"plural_table"`
 }
 
 // 连接配置
 type ConnConfig struct {
 	Driver string `toml:"driver"`
+	Prefix string `toml:"prefix"`
 	schema.ConnParams
 }
 
@@ -45,16 +52,41 @@ type RuleConfig struct {
 
 type TableRuleConfig = map[string]RuleConfig
 
+func GetRule(rules TableRuleConfig, name string) RuleConfig {
+	if rule, ok := rules[name]; ok {
+		return rule
+	}
+	return RuleConfig{}
+}
+
 // 配置
 type Config struct {
+	FileName    string // 文件名
+	ConnName    string // 连接名
 	Application AppConfig
 	Connections map[string]ConnConfig
 	ModelRules  map[string]TableRuleConfig
 }
 
+func (c Config) GetDriverName(name string) string {
+	if params, ok := c.Connections[name]; ok {
+		if params.Driver == "sqlite3" {
+			return "sqlite" // Sqlite的import包名和Open()驱动名不一样
+		}
+		return params.Driver
+	}
+	return ""
+}
+
+func (c Config) GetTablePrefix(name string) string {
+	if params, ok := c.Connections[name]; ok {
+		return params.Prefix
+	}
+	return ""
+}
+
 func (c Config) GetDSN(name string) (string, string) {
 	if params, ok := c.Connections[name]; ok {
-		name = params.Driver
 		dia := schema.GetDialectByName(params.Driver)
 		if dia != nil {
 			return dia.GetDSN(params.ConnParams)

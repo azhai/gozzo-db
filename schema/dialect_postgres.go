@@ -47,7 +47,7 @@ func (d Postgres) CurrDbNameSql() string {
 }
 
 func (Postgres) tableNameTpl() string {
-	return utils.TrimTail(`
+	return utils.ReduceSpaces(`
 			SELECT table_name, table_schema, table_rows, table_comment
 			FROM
 				information_schema.tables
@@ -81,7 +81,7 @@ func (Postgres) ColumnTypeSql(fullTableName string) string {
 }
 
 func (d Postgres) ColumnInfoSql(table, dbname string) string {
-	tpl := utils.TrimTail(`
+	tpl := utils.ReduceSpaces(`
 			SELECT 
 				column_name, column_type, column_key,
 				column_default, extra, column_comment

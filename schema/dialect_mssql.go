@@ -44,7 +44,7 @@ func (d Mssql) CurrDbNameSql() string {
 }
 
 func (Mssql) tableNameTpl() string {
-	return utils.TrimTail(`
+	return utils.ReduceSpaces(`
 			SELECT table_name, table_catalog, table_rows, table_comment
 			FROM
 				information_schema.tables
@@ -78,7 +78,7 @@ func (Mssql) ColumnTypeSql(fullTableName string) string {
 }
 
 func (d Mssql) ColumnInfoSql(table, dbname string) string {
-	tpl := utils.TrimTail(`
+	tpl := utils.ReduceSpaces(`
 			SELECT 
 				column_name, column_type, column_key,
 				column_default, extra, column_comment

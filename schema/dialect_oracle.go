@@ -68,7 +68,7 @@ func (Oracle) ColumnTypeSql(fullTableName string) string {
 }
 
 func (d Oracle) ColumnInfoSql(table, dbname string) string {
-	tpl := utils.TrimTail(`
+	tpl := utils.ReduceSpaces(`
 			SELECT 
 				column_name, column_type, column_key,
 				column_default, extra, column_comment

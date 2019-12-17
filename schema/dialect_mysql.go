@@ -47,7 +47,7 @@ func (d Mysql) CurrDbNameSql() string {
 }
 
 func (Mysql) tableNameTpl() string {
-	return utils.TrimTail(`
+	return utils.ReduceSpaces(`
 			SELECT table_name, table_schema, table_rows, table_comment
 			FROM
 				information_schema.tables
@@ -81,7 +81,7 @@ func (Mysql) ColumnTypeSql(fullTableName string) string {
 }
 
 func (d Mysql) ColumnInfoSql(table, dbname string) string {
-	tpl := utils.TrimTail(`
+	tpl := utils.ReduceSpaces(`
 			SELECT 
 				column_name, column_type, column_key, 
 				column_default, extra, column_comment,

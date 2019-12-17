@@ -24,13 +24,21 @@ func ToSingular(name string) string {
 	return inflection.Singular(name)
 }
 
-func TrimTail(lines string) string {
+func ReduceSpaces(lines string) string {
 	return strings.Join(strings.Fields(lines), " ")
 }
 
-func WrapWith(name, left, right string) string {
-	if name == "" {
+func WrapWith(s, left, right string) string {
+	if s == "" {
 		return ""
 	}
-	return fmt.Sprintf("%s%s%s", left, name, right)
+	return fmt.Sprintf("%s%s%s", left, s, right)
+}
+
+func ReplaceQuotes(s string) string {
+	if s == "" {
+		return ""
+	}
+	replacer := strings.NewReplacer("[", "`", "]", "`")
+	return replacer.Replace(s)
 }

@@ -21,7 +21,7 @@ var (
 func AmendComments(db *sql.DB, execute, verbose bool) {
 	tables, colDefs := FindTables(db, verbose)
 	fname := utils.GetAbsFile(targetFile)
-	if fsize, _ := utils.FileSize(fname, true); fsize == 0 {
+	if fsize := utils.MkdirForFile(fname); fsize == 0 {
 		_ = CollectCode(sourceDir, fname, "gorm.Model", verbose)
 	}
 	tbComments, colComments := ParseModelComments(fname, verbose)

@@ -2,13 +2,13 @@ package fixture
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/azhai/gozzo-db/prepare"
-	"github.com/jinzhu/gorm"
+	"github.com/azhai/gozzo-db/utils"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/jinzhu/gorm"
 )
 
 var (
@@ -28,8 +28,7 @@ func InitDB() *gorm.DB {
 	if err != nil {
 		panic(err)
 	}
-	replacer := strings.NewReplacer("[", "`", "]", "`")
-	sql := replacer.Replace(TestCreateTableSql)
+	sql := utils.ReplaceQuotes(TestCreateTableSql)
 	db.Exec(fmt.Sprintf(sql, TestTableName+"_males"))
 	db.Exec(fmt.Sprintf(sql, TestTableName+"_females"))
 	if testing.Verbose() {

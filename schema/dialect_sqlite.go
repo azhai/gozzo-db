@@ -36,7 +36,7 @@ func (Sqlite) CurrDbNameSql() string {
 }
 
 func (Sqlite) tableNameTpl() string {
-	return utils.TrimTail(`
+	return utils.ReduceSpaces(`
 			SELECT name
 			FROM
 				sqlite_master

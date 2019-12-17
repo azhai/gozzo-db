@@ -16,34 +16,45 @@ import (
 )
 
 var (
-	diaName  string // 数据库连接名
+	connName string // 数据库连接名
 	fileName string // 配置文件名
 	verbose  bool   // 详细输出
 )
 
 func init() {
-	flag.StringVar(&diaName, "d", "default", "数据库连接名")
+	flag.StringVar(&connName, "d", "default", "数据库连接名")
 	flag.StringVar(&fileName, "f", "settings.toml", "配置文件名")
 	flag.BoolVar(&verbose, "v", false, "输出详细信息")
 	flag.Parse()
 }
 
 func main() {
-	conf := prepare.GetConfig(fileName)
+	// 解析配置文件
+	conf, err := prepare.GetConfig(fileName)
 	if verbose {
-		fmt.Printf("%+v\n\n", conf)
+		fmt.Printf("%s:\n%+v\n\n", fileName, conf)
 	}
-	drv, dsn := conf.GetDSN(diaName)
-	db, err := gorm.Open(drv, dsn)
+	if err != nil || conf == nil {
+		fmt.Println(err)
+		return
+	}
+
+	// 连接数据库生成models
+	conf.ConnName = connName
+	db, err := gorm.Open(conf.GetDSN(connName))
 	if !utils.CheckError(err) {
 		return
 	}
 	if verbose {
-		db.LogMode(true).SetLogger(log.New(os.Stdout, "\r\n", 0))
+		db = db.Debug().LogMode(true)
+		db.SetLogger(log.New(os.Stdout, "\r\n", 0))
 	}
-	names, _ := prepare.CreateModels(db, conf)
-	if drv == "sqlite3" {
-		drv = "sqlite" // Sqlite的import包名和Open()驱动名不一样
+	names, err := prepare.CreateModels(conf, db)
+	if err != nil && verbose {
+		fmt.Println(err)
 	}
-	_ = prepare.GenInitFile(names, conf.Application, fileName, diaName, drv)
+	err = prepare.GenInitFile(conf, names)
+	if err != nil && verbose {
+		fmt.Println(err)
+	}
 }

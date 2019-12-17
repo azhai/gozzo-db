@@ -53,7 +53,7 @@ func (s *Sharding) FirstTable(out ShardingModel, isLast bool) (tableName string)
 			}
 		}
 	} else {
-		for i := 0; i <= len(tables) - 1; i++  {
+		for i := 0; i <= len(tables)-1; i++ {
 			tableName = tables[i]
 			if s.getShardingCount(tableName, false) > 0 {
 				return

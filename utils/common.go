@@ -41,16 +41,12 @@ func GetAbsFile(fname string) string {
 // 0, false 路径不存在
 // -1, true 存在文件夹
 // >=0, true 文件并存在
-func FileSize(path string, mkdir bool) (int64, bool) {
+func FileSize(path string) (int64, bool) {
 	if path == "" {
 		return -1, false
 	}
 	info, err := os.Stat(path)
 	if err != nil && os.IsNotExist(err) {
-		dir := filepath.Dir(path)
-		if mkdir && dir != "." {
-			_ = os.MkdirAll(dir, DIR_MODE)
-		}
 		return 0, false
 	}
 	var size = int64(-1)
@@ -58,4 +54,16 @@ func FileSize(path string, mkdir bool) (int64, bool) {
 		size = info.Size()
 	}
 	return size, true
+}
+
+func MkdirForFile(path string) int64 {
+	size, exists := FileSize(path)
+	if size < 0 {
+		return size
+	}
+	if !exists {
+		dir := filepath.Dir(path)
+		_ = os.MkdirAll(dir, DIR_MODE)
+	}
+	return size
 }

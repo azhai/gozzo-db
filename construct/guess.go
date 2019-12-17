@@ -5,13 +5,18 @@ import (
 	"strings"
 
 	"github.com/azhai/gozzo-db/schema"
+	"github.com/azhai/gozzo-db/utils"
 )
 
 // 根据数据库字段类型猜测Go类型，适用于mysql或pgsql
 func GuessTypeName(ci *schema.ColumnInfo) string {
 	switch ci.DatabaseTypeName() {
 	default:
-		return "string"
+		if ci.IsNotNull() {
+			return "string"
+		} else {
+			return "*string"
+		}
 	case "BIT", "BINARY", "VARBINARY":
 		return "[]byte"
 	case "BOOL", "BOOLEAN":
@@ -26,13 +31,19 @@ func GuessTypeName(ci *schema.ColumnInfo) string {
 		} else {
 			return "int8"
 		}
-	case "INT", "INTEGER", "SMALLINT", "YEAR":
+	case "SMALLINT", "YEAR":
+		if strings.HasSuffix(ci.FullType, "unsigned") {
+			return "uint16"
+		} else {
+			return "int16"
+		}
+	case "INT", "INTEGER", "MEDIUMINT":
 		if strings.HasSuffix(ci.FullType, "unsigned") {
 			return "uint"
 		} else {
 			return "int"
 		}
-	case "BIGINT", "MEDIUMINT", "NUMERIC":
+	case "BIGINT", "LONGINT", "NUMERIC":
 		if strings.HasSuffix(ci.FullType, "unsigned") {
 			return "uint64"
 		} else {
@@ -41,7 +52,11 @@ func GuessTypeName(ci *schema.ColumnInfo) string {
 	case "DECIMAL", "DOUBLE", "FLOAT", "REAL":
 		return "float64"
 	case "TIME", "TIMESTAMP", "DATETIME", "DATE":
-		return "time.Time"
+		if ci.IsNotNull() {
+			return "time.Time"
+		} else {
+			return "*time.Time"
+		}
 	}
 }
 
@@ -64,7 +79,7 @@ func GuessStructTags(ci *schema.ColumnInfo) string {
 		tag.Set(ci.Extra, "")
 	}
 	if ci.Comment != "" {
-		tag.Set("comment", ci.Comment)
+		tag.Set("comment", utils.WrapWith(ci.Comment, "'", "'"))
 	}
 	// gorm默认的varchar长度为255，不需要再标注
 	if size := ci.GetSize(); size > 0 && size != 255 {
