@@ -9,7 +9,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/azhai/gozzo-db/construct"
+	base "github.com/azhai/gozzo-db/construct"
 	"github.com/azhai/gozzo-db/rewrite"
 	"github.com/azhai/gozzo-db/schema"
 	"github.com/azhai/gozzo-db/utils"
@@ -77,11 +77,15 @@ func CreateModels(conf *Config, db *gorm.DB) (names []string, err error) {
 		}
 		cs := rewrite.NewCodeSource()
 		err = cs.SetPackage("models")
+		// 添加可能引用的包，后面再尝试删除不一定会用的包
 		cs.AddImport("github.com/azhai/gozzo-db/construct", "base")
 		cs.AddImport("github.com/jinzhu/gorm", "")
+		cs.AddImport("database/sql", "")
 		cs.AddImport("time", "")
 		err = cs.AddCode(buf.Bytes())
+		// 尝试删除，已用到的包不会被删除
 		cs.DelImport("github.com/jinzhu/gorm", "")
+		cs.DelImport("database/sql", "")
 		cs.DelImport("time", "")
 		err = cs.WriteTo(fname)
 	}
@@ -93,13 +97,10 @@ func GenInitFile(conf *Config, names []string) error {
 	app := conf.Application
 	sort.Strings(names)
 	for i, name := range names {
-		if i == 0 {
-			buf.WriteString(fmt.Sprintf("&%s{}", name))
-		} else if i%3 == 0 {
-			buf.WriteString(fmt.Sprintf(",\n\t\t&%s{}", name))
-		} else {
-			buf.WriteString(fmt.Sprintf(", &%s{}", name))
+		if i > 0 && i%3 == 0 {
+			buf.WriteString("\n\t\t")
 		}
+		buf.WriteString(fmt.Sprintf("&%s{}, ", name))
 	}
 	models := buf.String()
 
@@ -124,6 +125,7 @@ func GenInitFile(conf *Config, names []string) error {
 	fname := fmt.Sprintf("%s/init.go", app.OutputDir)
 	cs := rewrite.NewCodeSource()
 	err := cs.SetPackage("models")
+	// 以下包在默认模板都会引用
 	cs.AddImport("log", "")
 	cs.AddImport("os", "")
 	cs.AddImport("github.com/azhai/gozzo-db/construct", "base")
@@ -140,7 +142,7 @@ func GenNameType(col *schema.ColumnInfo, rule RuleConfig) string {
 		rule.Name = utils.ToCamel(col.FieldName)
 	}
 	if rule.Type == "" {
-		rule.Type = construct.GuessTypeName(col)
+		rule.Type = base.GuessTypeName(col)
 	}
 	return rule.Name + " " + rule.Type
 }
@@ -151,7 +153,7 @@ func GenTagComment(col *schema.ColumnInfo, rule RuleConfig) string {
 		rule.Json = col.FieldName
 	}
 	if rule.Tags == "" {
-		rule.Tags = construct.GuessStructTags(col)
+		rule.Tags = base.GuessStructTags(col)
 	}
 	if rule.Tags != "" {
 		blank = " "
@@ -163,4 +165,25 @@ func GenTagComment(col *schema.ColumnInfo, rule RuleConfig) string {
 	}
 	tpl := "`json:\"%s\"%s%s`%s"
 	return fmt.Sprintf(tpl, rule.Json, blank, rule.Tags, comment)
+}
+
+// 更新当前数据库中的表注释
+func AlterTableComments(query *gorm.DB, models ...interface{}) *gorm.DB {
+	tpl := "ALTER TABLE %s COMMENT = '%s'"
+	for _, value := range models {
+		var comment string
+		v, ok := value.(base.ITableComment)
+		if !ok {
+			continue
+		}
+		if comment = v.TableComment(); comment == "" {
+			continue
+		}
+		name := query.NewScope(value).QuotedTableName()
+		query = query.Exec(fmt.Sprintf(tpl, name, comment))
+		if err := query.Error; err != nil {
+			panic(err)
+		}
+	}
+	return query
 }

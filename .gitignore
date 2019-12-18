@@ -1,0 +1,16 @@
+.*
+*/*.so
+*/*.so.*
+*.bak
+*.exe
+*.log
+*.log.*
+*.sublime-project
+*.sublime-workspace
+*.tmp
+*.txt
+*.upx
+*.vscode
+code2mysql
+table2file
+vendor/

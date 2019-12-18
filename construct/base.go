@@ -4,6 +4,22 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
+/**
+ * 过滤查询
+ * 使用方法 query = query.Scopes(filters ...FilterFunc)
+ */
+type FilterFunc = func(query *gorm.DB) *gorm.DB
+
+/**
+ * 数据表注释
+ */
+type ITableComment interface {
+	TableComment() string
+}
+
+/**
+ * 带自增主键的基础Model
+ */
 type Model struct {
 	ID uint `json:"id" gorm:"primary_key;not null;auto_increment"`
 }
@@ -11,12 +27,6 @@ type Model struct {
 func (Model) TableComment() string {
 	return ""
 }
-
-/**
- * 过滤查询
- * 使用方法 query = query.Scopes(filters ...FilterFunc)
- */
-type FilterFunc = func(query *gorm.DB) *gorm.DB
 
 /**
  * 翻页查询，out参数需要传引用

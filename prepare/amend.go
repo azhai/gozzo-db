@@ -1,9 +1,11 @@
 package prepare
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -14,32 +16,51 @@ import (
 
 var (
 	sourceDir  = "models/"
-	targetFile = "amend/models.go"
+	targetDir = "cmd/tmp/"
 )
 
 // 将代码中的表和字段注释，覆盖数据库的SQL语句注释
-func AmendComments(db *sql.DB, execute, verbose bool) {
+func AmendComments(db *sql.DB, prefix string, onlyTable, verbose bool) error {
+	var buf bytes.Buffer
 	tables, colDefs := FindTables(db, verbose)
-	fname := utils.GetAbsFile(targetFile)
+	fname := utils.GetAbsFile(filepath.Join(targetDir, "models.go"))
 	if fsize := utils.MkdirForFile(fname); fsize == 0 {
-		_ = CollectCode(sourceDir, fname, "gorm.Model", verbose)
+		err := CollectCode(sourceDir, fname, "", verbose)
+		if err != nil {
+			return err
+		}
 	}
-	tbComments, colComments := ParseModelComments(fname, verbose)
-	atSql, tpl := "", "CHANGE `%s` `%s` %s COMMENT '%s',\n"
+	var fp *os.File
+	outname := utils.GetAbsFile(filepath.Join(targetDir, "comments.sql"))
+	flag := os.O_WRONLY | os.O_CREATE | os.O_TRUNC | os.O_APPEND
+	fp, err := os.OpenFile(outname, flag, 0644)
+	defer fp.Close()
+	if err != nil {
+		return err
+	}
+
+	tbComments, colComments := ParseModelComments(fname, prefix, verbose)
+	tpl := "\tCHANGE `%s` `%s` %s COMMENT '%s',\n"
 	for i, table := range tables {
 		columns, comments := colDefs[i], colComments[table]
-		atSql = fmt.Sprintf("ALTER TABLE `%s`\n", table)
-		for col, def := range columns {
-			if comment, ok := comments[col]; ok {
-				atSql += fmt.Sprintf(tpl, col, col, def, comment)
+		buf.Reset()
+		buf.WriteString(fmt.Sprintf("ALTER TABLE `%s`", table))
+		if !onlyTable {
+			buf.WriteString("\n")
+			for col, def := range columns {
+				if comment, ok := comments[col]; ok {
+					buf.WriteString(fmt.Sprintf(tpl, col, col, def, comment))
+				}
 			}
 		}
-		atSql += fmt.Sprintf("COMMENT = '%s';", tbComments[table])
-		fmt.Println(atSql, "\n\n")
-		if execute {
-			db.Exec(atSql)
+		buf.WriteString(fmt.Sprintf(" COMMENT = '%s';\n", tbComments[table]))
+		tbSql := buf.String() + "\n"
+		fp.WriteString(tbSql)
+		if verbose {
+			fmt.Print(tbSql)
 		}
 	}
+	return nil
 }
 
 // 找出所有表名，并列出每张表的字段定义
@@ -73,10 +94,12 @@ func FindTables(db *sql.DB, verbose bool) ([]string, []map[string]string) {
 
 // 在目录下所有的go代码中，找出baseModel子类的完整代码写入一个文件
 func CollectCode(dirname, outname, baseModel string, verbose bool) (err error) {
-	var data string = `package amend
+	var data string = `package tmp
 
 import (
 	"time"
+
+	base "github.com/azhai/gozzo-db/construct"
 	"github.com/jinzhu/gorm"
 )
 `
@@ -119,7 +142,7 @@ import (
 }
 
 // 分析文件代码，找出所有Model注释和其中的字段注释
-func ParseModelComments(filename string, verbose bool) (map[string]string, map[string](map[string]string)) {
+func ParseModelComments(filename, prefix string, verbose bool) (map[string]string, map[string](map[string]string)) {
 	tbComments := make(map[string]string)
 	colComments := make(map[string](map[string]string))
 	cp, err := rewrite.NewFileParser(filename)
@@ -127,7 +150,7 @@ func ParseModelComments(filename string, verbose bool) (map[string]string, map[s
 		return tbComments, colComments
 	}
 	for _, node := range cp.AllDeclNode("type") {
-		table := utils.ToSnake(strings.Join(node.Names, ", "))
+		table := prefix + utils.ToSnake(strings.Join(node.Names, ", "))
 		tbComments[table] = cp.GetComment(node.Comment, true)
 		if verbose {
 			fmt.Printf("%s %s\n", table, tbComments[table])

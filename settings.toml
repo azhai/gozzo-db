@@ -1,7 +1,7 @@
 [application]
     debug        = true
-    output_dir   = "./models"  #models输出目录
     plural_table = false       #表名是否使用复数
+    output_dir   = "./models"  #models输出目录
 
 [connections.default]
     driver   = "mysql"         #数据库类型

@@ -21,6 +21,10 @@ func ({{.Name}}) TableName() string {
 	return "{{.Table.TableName}}"
 }
 
+func ({{.Name}}) TableComment() string {
+	return "{{.Table.TableComment}}"
+}
+
 // 查询符合条件的所有行
 func (m {{.Name}}) FindAll(filters ...base.FilterFunc) (objs []{{.Name}}, err error) {
 	err = db.Model(m).Scopes(filters...).Find(&objs).Error
@@ -91,7 +95,12 @@ func MigrateTables(db *gorm.DB) *gorm.DB {
 	{{- else }}
 		db.SingularTable(true)
 	{{- end }}
-	return db.AutoMigrate({{.Models}})
+	tables := []interface{}{
+		{{.Models}}
+	}
+	db = db.AutoMigrate(tables...) // 创建缺少的表和字段
+	db = prepare.AlterTableComments(db, tables...) // 更新表注释
+	return db
 }
 
 // 写入必须的初始化数据
