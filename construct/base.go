@@ -11,6 +11,13 @@ import (
 type FilterFunc = func(query *gorm.DB) *gorm.DB
 
 /**
+ * 数据表名
+ */
+type ITableName interface {
+	TableName() string
+}
+
+/**
  * 数据表注释
  */
 type ITableComment interface {
@@ -21,7 +28,7 @@ type ITableComment interface {
  * 带自增主键的基础Model
  */
 type Model struct {
-	ID uint `json:"id" gorm:"primary_key;not null;auto_increment"`
+	ID uint `json:"id" toml:"-" gorm:"primary_key;not null;auto_increment"`
 }
 
 func (Model) TableComment() string {

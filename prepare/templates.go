@@ -4,6 +4,7 @@ var templates = map[string]string{
 	// model 文件模板
 	"gen_model.tmpl": `
 {{$rules := .Rules}}
+{{$np := .NullPointer}}
 // {{.Table.TableComment}}
 type {{.Name}} struct {
 	BaseModel
@@ -11,7 +12,7 @@ type {{.Name}} struct {
 	{{- if eq .FieldName "id" }}
 	{{- else }}
 		{{- $rule := GetRule $rules .FieldName}}
-		{{GenNameType . $rule}} {{GenTagComment . $rule}}
+		{{GenNameType . $rule $np}} {{GenTagComment . $rule}}
 	{{- end }}
 {{- end }}
 }
@@ -26,7 +27,7 @@ func ({{.Name}}) TableComment() string {
 }
 
 // 查询符合条件的所有行
-func (m {{.Name}}) FindAll(filters ...base.FilterFunc) (objs []{{.Name}}, err error) {
+func (m {{.Name}}) FindAll(filters ...base.FilterFunc) (objs []*{{.Name}}, err error) {
 	err = db.Model(m).Scopes(filters...).Find(&objs).Error
 	err = IgnoreNotFoundError(err)
 	return
@@ -42,7 +43,12 @@ func (m {{.Name}}) GetFirst(filters ...base.FilterFunc) (obj *{{.Name}}, err err
 
 	// init 文件模板
 	"gen_init.tmpl": `
-var db *gorm.DB
+var (
+	db *gorm.DB // 数据库对象
+	ModelInsts = []interface{}{ // 所有Model实例
+		{{.Models}}
+	}
+)
 
 type BaseModel = base.Model
 
@@ -52,7 +58,6 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-
 	db, err = gorm.Open(conf.GetDSN("{{.ConnName}}"))
 	if err != nil {
 		panic(err)
@@ -63,11 +68,12 @@ func init() {
 		db = db.Debug().LogMode(true)
 		db.SetLogger(log.New(os.Stdout, "\r\n", 0))
 	}
-	if conf.GetDriverName("{{.ConnName}}") == "mysql" {
+	drv := conf.GetDriverName("{{.ConnName}}")
+	if drv == "mysql" {
 		db.Set("gorm:table_options", "ENGINE=InnoDB")
 	}
-	db = MigrateTables(db)
-	db = FillRequiredData(db)
+	db = MigrateTables(drv, db)
+	db = FillRequiredData(drv, db)
 }
 
 // 获取当前db
@@ -89,22 +95,21 @@ func IgnoreNotFoundError(err error) error {
 }
 
 // 自动建表，如果缺少表或字段会加上
-func MigrateTables(db *gorm.DB) *gorm.DB {
+func MigrateTables(drv string, db *gorm.DB) *gorm.DB {
 	{{- if .Plural }}
 		db.SingularTable(false)
 	{{- else }}
 		db.SingularTable(true)
 	{{- end }}
-	tables := []interface{}{
-		{{.Models}}
+	db = db.AutoMigrate(ModelInsts...) // 创建缺少的表和字段
+	if drv == "mysql" { // 更新MySQL表注释
+		db = export.AlterTableComments(db, ModelInsts...)
 	}
-	db = db.AutoMigrate(tables...) // 创建缺少的表和字段
-	db = prepare.AlterTableComments(db, tables...) // 更新表注释
 	return db
 }
 
 // 写入必须的初始化数据
-func FillRequiredData(db *gorm.DB) *gorm.DB {
+func FillRequiredData(drv string, db *gorm.DB) *gorm.DB {
 	return db
 }`,
 }

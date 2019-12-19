@@ -64,6 +64,7 @@ func CreateModels(conf *Config, db *gorm.DB) (names []string, err error) {
 		data := map[string]interface{}{
 			"Name": name, "Table": tbInfo, "Columns": cols,
 			"Rules": conf.GetRules(tbInfo.TableName),
+			"NullPointer": conf.Application.NullPointer,
 		}
 		buf.Reset()
 		if err = t.Execute(&buf, data); err != nil {
@@ -109,8 +110,7 @@ func GenInitFile(conf *Config, names []string) error {
 	tablePrefix := conf.GetTablePrefix(conf.ConnName)
 	data := map[string]interface{}{
 		"FileName": conf.FileName, "ConnName": conf.ConnName,
-		"Prefix": tablePrefix, "Plural": app.PluralTable,
-		"Models": models,
+		"Prefix": tablePrefix, "Plural": app.PluralTable, "Models": models,
 	}
 	t := GetTemplate("gen_init.tmpl", nil)
 	if t == nil {
@@ -129,20 +129,28 @@ func GenInitFile(conf *Config, names []string) error {
 	cs.AddImport("log", "")
 	cs.AddImport("os", "")
 	cs.AddImport("github.com/azhai/gozzo-db/construct", "base")
+	cs.AddImport("github.com/azhai/gozzo-db/export", "")
 	cs.AddImport("github.com/azhai/gozzo-db/prepare", "")
 	cs.AddImport("github.com/jinzhu/gorm", "")
 	cs.AddImport("github.com/jinzhu/gorm/dialects/"+driverName, "_")
 	err = cs.AddCode(buf.Bytes())
+	cs.DelImport("github.com/azhai/gozzo-db/export", "")
+	cs.DelImport("github.com/azhai/gozzo-db/prepare", "")
 	err = cs.WriteTo(fname)
 	return err
 }
 
-func GenNameType(col *schema.ColumnInfo, rule RuleConfig) string {
+func GenNameType(col *schema.ColumnInfo, rule RuleConfig, nullPointer bool) string {
 	if rule.Name == "" {
 		rule.Name = utils.ToCamel(col.FieldName)
 	}
 	if rule.Type == "" {
 		rule.Type = base.GuessTypeName(col)
+		if nullPointer && !col.IsNotNull() {
+			if rule.Type == "string" || rule.Type == "time.Time" {
+				rule.Type = "*" + rule.Type // 字段可为NULL时，使用对应的指针类型
+			}
+		}
 	}
 	return rule.Name + " " + rule.Type
 }
@@ -165,25 +173,4 @@ func GenTagComment(col *schema.ColumnInfo, rule RuleConfig) string {
 	}
 	tpl := "`json:\"%s\"%s%s`%s"
 	return fmt.Sprintf(tpl, rule.Json, blank, rule.Tags, comment)
-}
-
-// 更新当前数据库中的表注释
-func AlterTableComments(query *gorm.DB, models ...interface{}) *gorm.DB {
-	tpl := "ALTER TABLE %s COMMENT = '%s'"
-	for _, value := range models {
-		var comment string
-		v, ok := value.(base.ITableComment)
-		if !ok {
-			continue
-		}
-		if comment = v.TableComment(); comment == "" {
-			continue
-		}
-		name := query.NewScope(value).QuotedTableName()
-		query = query.Exec(fmt.Sprintf(tpl, name, comment))
-		if err := query.Error; err != nil {
-			panic(err)
-		}
-	}
-	return query
 }

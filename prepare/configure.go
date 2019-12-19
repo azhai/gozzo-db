@@ -30,8 +30,9 @@ func GetConfig(fileName string) (*Config, error) {
 // 应用配置
 type AppConfig struct {
 	Debug       bool   `toml:"debug"`
-	OutputDir   string `toml:"output_dir"`
-	PluralTable bool   `toml:"plural_table"`
+	OutputDir   string `toml:"output_dir"`   // 输出目录，例如 models
+	PluralTable bool   `toml:"plural_table"` // 表名使用复数形式
+	NullPointer bool   `toml:"null_pointer"` // 字段可为NULL时，使用对应的指针类型
 }
 
 // 连接配置

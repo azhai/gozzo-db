@@ -1,7 +1,8 @@
 [application]
     debug        = true
-    plural_table = false       #表名是否使用复数
     output_dir   = "./models"  #models输出目录
+    plural_table = false       #表名是否使用复数
+    null_pointer = true        #字段可为NULL时，使用对应的指针类型
 
 [connections.default]
     driver   = "mysql"         #数据库类型

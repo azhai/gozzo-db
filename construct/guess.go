@@ -12,11 +12,7 @@ import (
 func GuessTypeName(ci *schema.ColumnInfo) string {
 	switch ci.DatabaseTypeName() {
 	default:
-		if ci.IsNotNull() {
-			return "string"
-		} else {
-			return "*string"
-		}
+		return "string"
 	case "BIT", "BINARY", "VARBINARY":
 		return "[]byte"
 	case "BOOL", "BOOLEAN":
@@ -52,11 +48,7 @@ func GuessTypeName(ci *schema.ColumnInfo) string {
 	case "DECIMAL", "DOUBLE", "FLOAT", "REAL":
 		return "float64"
 	case "TIME", "TIMESTAMP", "DATETIME", "DATE":
-		if ci.IsNotNull() {
-			return "time.Time"
-		} else {
-			return "*time.Time"
-		}
+		return "time.Time"
 	}
 }
 

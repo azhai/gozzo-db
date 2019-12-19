@@ -4,26 +4,23 @@ GOBIN=/usr/local/bin/go
 GOOS=$(shell uname -s | tr [A-Z] [a-z])
 GOARGS=GOARCH=amd64 CGO_ENABLED=0
 GOBUILD=$(GOARGS) $(GOBIN) build -ldflags="$(RELEASE)"
+TARGETS=$(shell ls -1 -I '*.*' ./cmd/ | grep -v tmp | xargs)
 
-build: unix
+.PHONY: clean common
+clean:
+    rm -f $(TARGETS)
+common:
+    $(foreach dst, $(TARGETS), GOOS=$(GOOS) $(GOBUILD) ./cmd/$(dst)/)
 darwin:
-	GOOS=darwin $(GOBUILD) ./cmd/code2mysql/
-	GOOS=darwin $(GOBUILD) ./cmd/table2file/
+    $(foreach dst, $(TARGETS), GOOS=darwin $(GOBUILD) ./cmd/$(dst)/)
 mac: darwin
 macos: darwin
 linux:
-	GOOS=linux $(GOBUILD) ./cmd/code2mysql/
-	GOOS=linux $(GOBUILD) ./cmd/table2file/
-unix:
-	GOOS=$(GOOS) $(GOBUILD) ./cmd/code2mysql/
-	GOOS=$(GOOS) $(GOBUILD) ./cmd/table2file/
+    $(foreach dst, $(TARGETS), GOOS=linux $(GOBUILD) ./cmd/$(dst)/)
 upx: linux
-	$(UPXBIN) code2mysql
-	$(UPXBIN) table2file
+	$(UPXBIN) $(TARGETS)
 upxx: linux
-	$(UPXBIN) --ultra-brute code2mysql
-	$(UPXBIN) --ultra-brute table2file
+	$(UPXBIN) --ultra-brute $(TARGETS)
 win: windows
 windows:
-	GOOS=windows $(GOBUILD) ./cmd/code2mysql/
-	GOOS=windows $(GOBUILD) ./cmd/table2file/
+    $(foreach dst, $(TARGETS), GOOS=windows $(GOBUILD) ./cmd/$(dst)/)
