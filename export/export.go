@@ -2,6 +2,7 @@ package export
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 
 	"github.com/BurntSushi/toml"
@@ -26,7 +27,7 @@ func ConvertToml(src Dict, dst interface{}) error {
 }
 
 // 往数据库中写入数据
-func InsertRows(scope *gorm.Scope, rows []Dict) error {
+func InsertRows(scope *gorm.Scope, rows []Dict, verbose bool) error {
 	db := scope.DB()
 	for _, row := range rows {
 		if err := ConvertToml(row, scope.Value); err != nil {
@@ -34,6 +35,9 @@ func InsertRows(scope *gorm.Scope, rows []Dict) error {
 		}
 		if field := scope.PrimaryField(); field != nil {
 			field.Set(0) // 清空主键，避免下面Create变成更新
+		}
+		if verbose {
+			fmt.Printf("%#v\n", scope.Value)
 		}
 		db = db.Create(scope.Value)
 	}
@@ -56,7 +60,10 @@ func LoadFileData(db *gorm.DB, fname string, models []interface{}, verbose bool)
 			if !ok || info.TableRows == int64(len(rows)) {
 				continue // 可能会重复导入
 			}
-			InsertRows(scope, rows)
+			if verbose {
+				fmt.Printf("Insert %d rows into table %s\n", len(rows), tableName)
+			}
+			_ = InsertRows(scope, rows, verbose)
 		}
 	}
 	return db, nil

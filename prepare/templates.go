@@ -52,11 +52,33 @@ var (
 
 type BaseModel = base.Model
 
+// 获取当前db
+func Query() *gorm.DB {
+	return db
+}
+
+// 查询某张数据表
+func QueryTable(name string) *gorm.DB {
+	return db.Table(name)
+}
+
+// 忽略表中无数据的错误
+func IgnoreNotFoundError(err error) error {
+	if err == nil || gorm.IsRecordNotFoundError(err) {
+		return nil
+	}
+	return err
+}
+
 // 连接数据库
 func init() {
 	conf, err := prepare.GetConfig("{{.FileName}}")
 	if err != nil {
 		panic(err)
+	}
+	if c, ok := conf.Connections["cache"]; ok && c.Driver == "redis" {
+		rds := cache.ConnectRedisPool(c.ConnParams)
+		cache.SetRedisBackend(rds)
 	}
 	db, err = gorm.Open(conf.GetDSN("{{.ConnName}}"))
 	if err != nil {
@@ -74,24 +96,6 @@ func init() {
 	}
 	db = MigrateTables(drv, db)
 	db = FillRequiredData(drv, db)
-}
-
-// 获取当前db
-func Query() *gorm.DB {
-	return db
-}
-
-// 查询某张数据表
-func QueryTable(name string) *gorm.DB {
-	return db.Table(name)
-}
-
-// 忽略表中无数据的错误
-func IgnoreNotFoundError(err error) error {
-	if err == nil || gorm.IsRecordNotFoundError(err) {
-		return nil
-	}
-	return err
 }
 
 // 自动建表，如果缺少表或字段会加上

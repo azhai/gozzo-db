@@ -4,24 +4,27 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/azhai/gozzo-utils/common"
 	"github.com/azhai/gozzo-utils/rdspool"
 )
 
 const (
-	SESS_ONLINE_KEY = "onlines" // 在线用户
-	SESS_PREFIX     = "sess"    // 会话缓存前缀
-	SESS_TIMEOUT    = 7200      // 会话缓存时间
-	SESS_LIST_SEP   = ";"       // 角色名之间的分隔符
+	MAX_TIMEOUT     = 86400 * 30 // 接近无限时间
+	SESS_ONLINE_KEY = "onlines"  // 在线用户
+	SESS_PREFIX     = "sess"     // 会话缓存前缀
+	SESS_TIMEOUT    = 7200       // 会话缓存时间
+	SESS_LIST_SEP   = ";"        // 角色名之间的分隔符
 )
 
 var (
 	rds      rdspool.Redis
-	onlines  = GetRedisHash(SESS_ONLINE_KEY, -1)
+	onlines  *RedisBackend
 	sessions = make(map[string]*RedisBackend)
 )
 
 func SetRedisBackend(rdsConn rdspool.Redis) {
 	rds = rdsConn
+	onlines = GetRedisHash(SESS_ONLINE_KEY, MAX_TIMEOUT)
 }
 
 func GetRedisHash(key string, timeout int) *RedisBackend {
@@ -61,30 +64,25 @@ func SessListSplit(data string) []string {
 	return strings.Split(data, SESS_LIST_SEP)
 }
 
-// 用户基本信息
-type UserInfo struct {
-	UID          string  `json:"uid" gorm:"unique_index;size:16;not null;comment:'唯一ID'"` // 唯一ID
-	Realname     *string `json:"realname" gorm:"size:30;comment:'昵称/称呼'"`                 // 昵称/称呼
-	Avatar       *string `json:"avatar" gorm:"size:100;comment:'头像'"`                     // 头像
-	Introduction *string `json:"introduction" gorm:"size:500;comment:'介绍说明'"`             // 介绍说明
+// 绑定用户角色，返回旧的sid
+func BindUserRoles(sess *RedisBackend, uid string, roles []string) (string, error) {
+	newSid := sess.GetName()
+	oldSid, _ := onlines.GetString(uid) // 用于踢掉重复登录
+	if oldSid == newSid {               // 同一个token
+		oldSid = ""
+	}
+	_, err := onlines.Set(uid, newSid)
+	_, err = sess.Set("uid", uid)
+	_, err = sess.Set("roles", SessListJoin(roles))
+	return oldSid, err
 }
 
 // 绑定用户信息
-func BindUserInfo(sess *RedisBackend, user *UserInfo, roles []string) (oldSid string) {
-	// 用于踢掉重复登录
-	oldSid, _ = onlines.GetString(user.UID)
-	onlines.Set(user.UID, sess.GetName())
-	// 缓存用户基本信息
-	sess.Set("uid", user.UID)
-	sess.Set("roles", SessListJoin(roles))
-	if user.Realname != nil {
-		sess.Set("name", *user.Realname)
+func BindUserInfo(sess *RedisBackend, info map[string]string) error {
+	var args []string
+	for key, value := range info {
+		args = append(args, key, value)
 	}
-	if user.Avatar != nil {
-		sess.Set("avatar", *user.Avatar)
-	}
-	if user.Introduction != nil {
-		sess.Set("introduction", *user.Introduction)
-	}
-	return
+	_, err := sess.DoWith("HMSET", common.StrToList(args)...)
+	return err
 }
