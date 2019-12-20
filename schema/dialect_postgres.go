@@ -3,7 +3,7 @@ package schema
 import (
 	"fmt"
 
-	"github.com/azhai/gozzo-db/utils"
+	"github.com/azhai/gozzo-utils/common"
 )
 
 type Postgres struct {
@@ -27,7 +27,7 @@ func (Postgres) GetDSN(params ConnParams) (string, string) {
 }
 
 func (Postgres) QuoteIdent(ident string) string {
-	return utils.WrapWith(ident, `"`, `"`)
+	return common.WrapWith(ident, `"`, `"`)
 }
 
 func (Postgres) dbNameCol() string {
@@ -38,7 +38,7 @@ func (d Postgres) dbNameVal(dbname string) string {
 	if dbname == "" {
 		return d.dbNameCol()
 	} else {
-		return utils.WrapWith(dbname, "'", "'")
+		return common.WrapWith(dbname, "'", "'")
 	}
 }
 
@@ -47,7 +47,7 @@ func (d Postgres) CurrDbNameSql() string {
 }
 
 func (Postgres) tableNameTpl() string {
-	return utils.ReduceSpaces(`
+	return common.ReduceSpaces(`
 			SELECT table_name, table_schema, table_rows, table_comment
 			FROM
 				information_schema.tables
@@ -58,7 +58,7 @@ func (Postgres) tableNameTpl() string {
 
 func (d Postgres) TableNameSql(dbname string, more bool) string {
 	if more {
-		dbcond := "LIKE " + utils.WrapWith(dbname, "'", "%'")
+		dbcond := "LIKE " + common.WrapWith(dbname, "'", "%'")
 		return fmt.Sprintf(d.tableNameTpl(), "BASE TABLE", dbcond)
 	} else {
 		dbcond := "= " + d.dbNameVal(dbname)
@@ -68,7 +68,7 @@ func (d Postgres) TableNameSql(dbname string, more bool) string {
 
 func (d Postgres) ViewNameSql(dbname string, more bool) string {
 	if more {
-		dbcond := "LIKE " + utils.WrapWith(dbname, "'", "%'")
+		dbcond := "LIKE " + common.WrapWith(dbname, "'", "%'")
 		return fmt.Sprintf(d.tableNameTpl(), "VIEW", dbcond)
 	} else {
 		dbcond := "= " + d.dbNameVal(dbname)
@@ -81,7 +81,7 @@ func (Postgres) ColumnTypeSql(fullTableName string) string {
 }
 
 func (d Postgres) ColumnInfoSql(table, dbname string) string {
-	tpl := utils.ReduceSpaces(`
+	tpl := common.ReduceSpaces(`
 			SELECT 
 				column_name, column_type, column_key,
 				column_default, extra, column_comment

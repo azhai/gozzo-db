@@ -3,13 +3,13 @@ package prepare
 import (
 	"github.com/BurntSushi/toml"
 	"github.com/azhai/gozzo-db/schema"
-	"github.com/azhai/gozzo-db/utils"
+	"github.com/azhai/gozzo-utils/filesystem"
 )
 
 // 解析配置和创建日志
 func GetConfig(fileName string) (*Config, error) {
 	var conf = new(Config)
-	fullPath := utils.GetAbsFile(fileName)
+	fullPath := filesystem.GetAbsFile(fileName)
 	_, err := toml.DecodeFile(fullPath, &conf)
 	if err != nil {
 		return nil, err

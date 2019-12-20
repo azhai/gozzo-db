@@ -3,7 +3,7 @@ package schema
 import (
 	"fmt"
 
-	"github.com/azhai/gozzo-db/utils"
+	"github.com/azhai/gozzo-utils/common"
 )
 
 type Sqlite struct {
@@ -20,14 +20,14 @@ func (Sqlite) GetDSN(params ConnParams) (string, string) {
 }
 
 func (Sqlite) QuoteIdent(ident string) string {
-	return utils.WrapWith(ident, "`", "`")
+	return common.WrapWith(ident, "`", "`")
 }
 
 func (Sqlite) dbNameVal(dbname string) string {
 	if dbname == "" {
 		return "'main'"
 	} else {
-		return utils.WrapWith(dbname, "'", "'")
+		return common.WrapWith(dbname, "'", "'")
 	}
 }
 
@@ -36,7 +36,7 @@ func (Sqlite) CurrDbNameSql() string {
 }
 
 func (Sqlite) tableNameTpl() string {
-	return utils.ReduceSpaces(`
+	return common.ReduceSpaces(`
 			SELECT name
 			FROM
 				sqlite_master

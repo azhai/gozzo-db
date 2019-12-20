@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/azhai/gozzo-db/schema"
-	"github.com/azhai/gozzo-db/utils"
+	"github.com/azhai/gozzo-utils/common"
 )
 
 // 根据数据库字段类型猜测Go类型，适用于mysql或pgsql
@@ -71,7 +71,7 @@ func GuessStructTags(ci *schema.ColumnInfo) string {
 		tag.Set(ci.Extra, "")
 	}
 	if ci.Comment != "" {
-		tag.Set("comment", utils.WrapWith(ci.Comment, "'", "'"))
+		tag.Set("comment", common.WrapWith(ci.Comment, "'", "'"))
 	}
 	// gorm默认的varchar长度为255，不需要再标注
 	if size := ci.GetSize(); size > 0 && size != 255 {

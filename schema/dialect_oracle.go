@@ -3,7 +3,7 @@ package schema
 import (
 	"fmt"
 
-	"github.com/azhai/gozzo-db/utils"
+	"github.com/azhai/gozzo-utils/common"
 )
 
 type Oracle struct {
@@ -24,14 +24,14 @@ func (Oracle) GetDSN(params ConnParams) (string, string) {
 }
 
 func (Oracle) QuoteIdent(ident string) string {
-	return utils.WrapWith(ident, "{", "}")
+	return common.WrapWith(ident, "{", "}")
 }
 
 func (Oracle) dbNameVal(dbname string) string {
 	if dbname == "" {
 		return "SELECT SYS_CONTEXT('userenv', 'current_schema') FROM DUAL"
 	} else {
-		return utils.WrapWith(dbname, "'", "'")
+		return common.WrapWith(dbname, "'", "'")
 	}
 }
 
@@ -45,7 +45,7 @@ func (Oracle) tableNameTpl() string {
 
 func (d Oracle) TableNameSql(dbname string, more bool) string {
 	if more {
-		dbcond := "LIKE " + utils.WrapWith(dbname, "'", "%'")
+		dbcond := "LIKE " + common.WrapWith(dbname, "'", "%'")
 		return fmt.Sprintf(d.tableNameTpl(), "table_name", "all_tables", dbcond)
 	} else {
 		dbcond := "IN (" + d.dbNameVal(dbname) + ")"
@@ -55,7 +55,7 @@ func (d Oracle) TableNameSql(dbname string, more bool) string {
 
 func (d Oracle) ViewNameSql(dbname string, more bool) string {
 	if more {
-		dbcond := "LIKE " + utils.WrapWith(dbname, "'", "%'")
+		dbcond := "LIKE " + common.WrapWith(dbname, "'", "%'")
 		return fmt.Sprintf(d.tableNameTpl(), "view_name", "all_views", dbcond)
 	} else {
 		dbcond := "IN (" + d.dbNameVal(dbname) + ")"
@@ -68,7 +68,7 @@ func (Oracle) ColumnTypeSql(fullTableName string) string {
 }
 
 func (d Oracle) ColumnInfoSql(table, dbname string) string {
-	tpl := utils.ReduceSpaces(`
+	tpl := common.ReduceSpaces(`
 			SELECT 
 				column_name, column_type, column_key,
 				column_default, extra, column_comment

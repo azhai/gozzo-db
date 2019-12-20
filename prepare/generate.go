@@ -12,14 +12,14 @@ import (
 	base "github.com/azhai/gozzo-db/construct"
 	"github.com/azhai/gozzo-db/rewrite"
 	"github.com/azhai/gozzo-db/schema"
-	"github.com/azhai/gozzo-db/utils"
+	"github.com/azhai/gozzo-utils/filesystem"
 	"github.com/jinzhu/gorm"
 )
 
 var TemplateNotFound = errors.New("template not found")
 
 func GetTemplate(name string, funcMap template.FuncMap) *template.Template {
-	if fsize, _ := utils.FileSize(utils.GetAbsFile(name)); fsize > 0 {
+	if fsize, _ := filesystem.FileSize(filesystem.GetAbsFile(name)); fsize > 0 {
 		// New()名称要与ParseFiles()文件名一致 Funcs()必须在Parse之前
 		t := template.New(name).Funcs(funcMap)
 		return template.Must(t.ParseFiles(name))
@@ -55,9 +55,9 @@ func CreateModels(conf *Config, db *gorm.DB) (names []string, err error) {
 			table = table[len(tablePrefix):]
 		}
 		if app.PluralTable {
-			table = utils.ToSingular(table)
+			table = ToSingular(table)
 		}
-		name := utils.ToCamel(table)
+		name := ToCamel(table)
 		names = append(names, name)
 
 		// 渲染模板
@@ -74,7 +74,7 @@ func CreateModels(conf *Config, db *gorm.DB) (names []string, err error) {
 		// 写入文件
 		fname := fmt.Sprintf("%s/%s.go", app.OutputDir, table)
 		if i == 0 {
-			utils.MkdirForFile(fname)
+			MkdirForFile(fname)
 		}
 		cs := rewrite.NewCodeSource()
 		err = cs.SetPackage("models")
@@ -142,7 +142,7 @@ func GenInitFile(conf *Config, names []string) error {
 
 func GenNameType(col *schema.ColumnInfo, rule RuleConfig, nullPointer bool) string {
 	if rule.Name == "" {
-		rule.Name = utils.ToCamel(col.FieldName)
+		rule.Name = ToCamel(col.FieldName)
 	}
 	if rule.Type == "" {
 		rule.Type = base.GuessTypeName(col)

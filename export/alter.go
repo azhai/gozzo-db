@@ -5,7 +5,7 @@ import (
 
 	base "github.com/azhai/gozzo-db/construct"
 	"github.com/azhai/gozzo-db/schema"
-	"github.com/azhai/gozzo-db/utils"
+	"github.com/azhai/gozzo-utils/common"
 	"github.com/jinzhu/gorm"
 )
 
@@ -39,7 +39,7 @@ END IF;
 `
 	comments := GetTableComments(query, models...)
 	for name, comment := range comments {
-		quoteName := utils.WrapWith(name, "`", "`")
+		quoteName := common.WrapWith(name, "`", "`")
 		query = query.Exec(fmt.Sprintf(tpl, name, quoteName, comment))
 		if err := query.Error; err != nil {
 			panic(err)

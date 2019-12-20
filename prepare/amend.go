@@ -11,7 +11,7 @@ import (
 
 	"github.com/azhai/gozzo-db/rewrite"
 	"github.com/azhai/gozzo-db/schema"
-	"github.com/azhai/gozzo-db/utils"
+	"github.com/azhai/gozzo-utils/filesystem"
 )
 
 var (
@@ -23,15 +23,15 @@ var (
 func AmendComments(db *sql.DB, prefix string, onlyTable, verbose bool) error {
 	var buf bytes.Buffer
 	tables, colDefs := FindTables(db, verbose)
-	fname := utils.GetAbsFile(filepath.Join(targetDir, "models.go"))
-	if fsize := utils.MkdirForFile(fname); fsize == 0 {
+	fname := filesystem.GetAbsFile(filepath.Join(targetDir, "models.go"))
+	if fsize := MkdirForFile(fname); fsize == 0 {
 		err := CollectCode(sourceDir, fname, "", verbose)
 		if err != nil {
 			return err
 		}
 	}
 	var fp *os.File
-	outname := utils.GetAbsFile(filepath.Join(targetDir, "comments.sql"))
+	outname := filesystem.GetAbsFile(filepath.Join(targetDir, "comments.sql"))
 	flag := os.O_WRONLY | os.O_CREATE | os.O_TRUNC | os.O_APPEND
 	fp, err := os.OpenFile(outname, flag, 0644)
 	defer fp.Close()
@@ -68,12 +68,12 @@ func FindTables(db *sql.DB, verbose bool) ([]string, []map[string]string) {
 	s := schema.NewSchema(db)
 	tables := s.GetTableNames("")
 	defines := make([]map[string]string, 0)
-	if !utils.CheckError(s.Error) {
+	if !CheckError(s.Error) {
 		return tables, defines
 	}
 	for _, table := range tables {
 		cols := s.GetColumnInfos(table, "")
-		if !utils.CheckError(s.Error) {
+		if !CheckError(s.Error) {
 			return tables, defines
 		}
 		if verbose {
@@ -104,7 +104,7 @@ import (
 )
 `
 	files, err := ioutil.ReadDir(dirname)
-	if !utils.CheckError(err) {
+	if !CheckError(err) {
 		return
 	}
 	for _, file := range files {
@@ -117,7 +117,7 @@ import (
 			fmt.Println(fname)
 		}
 		cp, err := rewrite.NewFileParser(fname)
-		if !utils.CheckError(err) {
+		if !CheckError(err) {
 			continue
 		}
 		for _, node := range cp.AllDeclNode("type") {
@@ -146,11 +146,11 @@ func ParseModelComments(filename, prefix string, verbose bool) (map[string]strin
 	tbComments := make(map[string]string)
 	colComments := make(map[string](map[string]string))
 	cp, err := rewrite.NewFileParser(filename)
-	if !utils.CheckError(err) {
+	if !CheckError(err) {
 		return tbComments, colComments
 	}
 	for _, node := range cp.AllDeclNode("type") {
-		table := prefix + utils.ToSnake(strings.Join(node.Names, ", "))
+		table := prefix + ToSnake(strings.Join(node.Names, ", "))
 		tbComments[table] = cp.GetComment(node.Comment, true)
 		if verbose {
 			fmt.Printf("%s %s\n", table, tbComments[table])
@@ -161,7 +161,7 @@ func ParseModelComments(filename, prefix string, verbose bool) (map[string]strin
 			if comment == "" {
 				continue
 			}
-			column := utils.ToSnake(strings.Join(fd.Names, ", "))
+			column := ToSnake(strings.Join(fd.Names, ", "))
 			colComments[table][column] = comment
 			if verbose {
 				fmt.Printf("%d: %s %s\n", i, column, comment)

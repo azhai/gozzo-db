@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/azhai/gozzo-db/prepare"
-	"github.com/azhai/gozzo-db/utils"
+	"github.com/azhai/gozzo-utils/common"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 )
@@ -23,12 +23,12 @@ var (
 )
 
 func InitDB() *gorm.DB {
-	conf := prepare.GetConfig("../settings.toml")
+	conf, _ := prepare.GetConfig("../settings.toml")
 	db, err := gorm.Open(conf.GetDSN("default"))
 	if err != nil {
 		panic(err)
 	}
-	sql := utils.ReplaceQuotes(TestCreateTableSql)
+	sql := common.ReplaceQuotes(TestCreateTableSql)
 	db.Exec(fmt.Sprintf(sql, TestTableName+"_males"))
 	db.Exec(fmt.Sprintf(sql, TestTableName+"_females"))
 	if testing.Verbose() {

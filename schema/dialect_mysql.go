@@ -3,7 +3,7 @@ package schema
 import (
 	"fmt"
 
-	"github.com/azhai/gozzo-db/utils"
+	"github.com/azhai/gozzo-utils/common"
 )
 
 type Mysql struct {
@@ -27,7 +27,7 @@ func (Mysql) GetDSN(params ConnParams) (string, string) {
 }
 
 func (Mysql) QuoteIdent(ident string) string {
-	return utils.WrapWith(ident, "`", "`")
+	return common.WrapWith(ident, "`", "`")
 }
 
 func (Mysql) dbNameCol() string {
@@ -38,7 +38,7 @@ func (d Mysql) dbNameVal(dbname string) string {
 	if dbname == "" {
 		return d.dbNameCol()
 	} else {
-		return utils.WrapWith(dbname, "'", "'")
+		return common.WrapWith(dbname, "'", "'")
 	}
 }
 
@@ -47,7 +47,7 @@ func (d Mysql) CurrDbNameSql() string {
 }
 
 func (Mysql) tableNameTpl() string {
-	return utils.ReduceSpaces(`
+	return common.ReduceSpaces(`
 			SELECT table_name, table_schema, table_rows, table_comment
 			FROM
 				information_schema.tables
@@ -58,7 +58,7 @@ func (Mysql) tableNameTpl() string {
 
 func (d Mysql) TableNameSql(dbname string, more bool) string {
 	if more {
-		dbcond := "LIKE " + utils.WrapWith(dbname, "'", "%'")
+		dbcond := "LIKE " + common.WrapWith(dbname, "'", "%'")
 		return fmt.Sprintf(d.tableNameTpl(), "BASE TABLE", dbcond)
 	} else {
 		dbcond := "= " + d.dbNameVal(dbname)
@@ -68,7 +68,7 @@ func (d Mysql) TableNameSql(dbname string, more bool) string {
 
 func (d Mysql) ViewNameSql(dbname string, more bool) string {
 	if more {
-		dbcond := "LIKE " + utils.WrapWith(dbname, "'", "%'")
+		dbcond := "LIKE " + common.WrapWith(dbname, "'", "%'")
 		return fmt.Sprintf(d.tableNameTpl(), "VIEW", dbcond)
 	} else {
 		dbcond := "= " + d.dbNameVal(dbname)
@@ -81,7 +81,7 @@ func (Mysql) ColumnTypeSql(fullTableName string) string {
 }
 
 func (d Mysql) ColumnInfoSql(table, dbname string) string {
-	tpl := utils.ReduceSpaces(`
+	tpl := common.ReduceSpaces(`
 			SELECT 
 				column_name, column_type, column_key, 
 				column_default, extra, column_comment,

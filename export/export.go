@@ -62,6 +62,13 @@ func LoadFileData(db *gorm.DB, fname string, models []interface{}, verbose bool)
 	return db, nil
 }
 
+func GetTableName(obj interface{}, name string) string {
+	if m, ok := obj.(construct.ITableName); ok {
+		return m.TableName()
+	}
+	return name
+}
+
 type Exportor struct {
 	Data map[string][]interface{}
 }
@@ -73,19 +80,21 @@ func NewExportor() *Exportor {
 }
 
 func (ep *Exportor) AddObject(obj interface{}, group string) bool {
-	if group == "" {
-		if m, ok := obj.(construct.ITableName); ok {
-			group = m.TableName()
-		} else {
-			return false
-		}
+	if obj == nil {
+		return false
+	}
+	if group = GetTableName(obj, group); group == "" {
+		return false
 	}
 	ep.Data[group] = append(ep.Data[group], obj)
 	return true
 }
 
 func (ep *Exportor) SetBuffer(buf *bytes.Buffer) error {
-	return toml.NewEncoder(buf).Encode(ep.Data)
+	if len(ep.Data) > 0 {
+		return toml.NewEncoder(buf).Encode(ep.Data)
+	}
+	return nil
 }
 
 func (ep *Exportor) WriteTo(fname string) error {
