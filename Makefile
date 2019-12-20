@@ -3,24 +3,22 @@ UPXBIN=/usr/local/bin/upx
 GOBIN=/usr/local/bin/go
 GOOS=$(shell uname -s | tr [A-Z] [a-z])
 GOARGS=GOARCH=amd64 CGO_ENABLED=0
-GOBUILD=$(GOARGS) $(GOBIN) build -ldflags="$(RELEASE)"
-TARGETS=$(shell ls -1 -I '*.*' ./cmd/ | grep -v tmp | xargs)
+APPS=$(shell ls -1 ./cmd/ | grep -v "\." | grep -v tmp | xargs)
 
-.PHONY: clean common
+.PHONY: all
+all: clean build
+build:
+	@ for dst in $(APPS); \
+	do \
+		GOOS=$(GOOS) $(GOARGS) $(GOBIN) build -ldflags="$(RELEASE)" ./cmd/$$dst/; \
+	done
+	@echo Compile $(APPS)
+	@echo Build success.
 clean:
-    rm -f $(TARGETS)
-common:
-    $(foreach dst, $(TARGETS), GOOS=$(GOOS) $(GOBUILD) ./cmd/$(dst)/)
-darwin:
-    $(foreach dst, $(TARGETS), GOOS=darwin $(GOBUILD) ./cmd/$(dst)/)
-mac: darwin
-macos: darwin
-linux:
-    $(foreach dst, $(TARGETS), GOOS=linux $(GOBUILD) ./cmd/$(dst)/)
-upx: linux
-	$(UPXBIN) $(TARGETS)
-upxx: linux
-	$(UPXBIN) --ultra-brute $(TARGETS)
-win: windows
-windows:
-    $(foreach dst, $(TARGETS), GOOS=windows $(GOBUILD) ./cmd/$(dst)/)
+	rm -f $(APPS)
+	@echo Clean all.
+upx: build
+	$(UPXBIN) $(APPS)
+upxx: build
+	$(UPXBIN) --ultra-brute $(APPS)
+
