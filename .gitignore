@@ -12,5 +12,6 @@
 *.upx
 *.vscode
 code2mysql
+load4toml
 table2file
 vendor/
