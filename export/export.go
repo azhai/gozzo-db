@@ -57,7 +57,7 @@ func LoadFileData(db *gorm.DB, fname string, models []interface{}, verbose bool)
 		tableName := scope.TableName()
 		if rows, ok := temp[tableName]; ok {
 			info, ok := tbInfos[tableName]
-			if !ok || info.TableRows == int64(len(rows)) {
+			if !ok || info.TableRows >= int64(len(rows)) {
 				continue // 可能会重复导入
 			}
 			if verbose {

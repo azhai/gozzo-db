@@ -34,9 +34,9 @@ func (m {{.Name}}) FindAll(filters ...base.FilterFunc) (objs []*{{.Name}}, err e
 }
 
 // 查询符合条件的第一行
-func (m {{.Name}}) GetFirst(filters ...base.FilterFunc) (obj *{{.Name}}, err error) {
+func (m {{.Name}}) GetOne(filters ...base.FilterFunc) (obj *{{.Name}}, err error) {
 	obj = new({{.Name}})
-	err = db.Model(m).Scopes(filters...).First(&obj).Error
+	err = db.Model(m).Scopes(filters...).Take(&obj).Error
 	err = IgnoreNotFoundError(err)
 	return
 }`,

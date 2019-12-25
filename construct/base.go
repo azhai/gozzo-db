@@ -35,6 +35,14 @@ func (Model) TableComment() string {
 	return ""
 }
 
+// 忽略表中无数据的错误
+func IgnoreNotFoundError(err error) error {
+	if err == nil || gorm.IsRecordNotFoundError(err) {
+		return nil
+	}
+	return err
+}
+
 /**
  * 翻页查询，out参数需要传引用
  * 使用方法 total, err := Paginate(query, &rows, pageno, pagesize)
@@ -58,8 +66,6 @@ func Paginate(query *gorm.DB, out interface{}, pageno, pagesize int) (total int,
 		offset = -1
 	}
 	err = query.Limit(limit).Offset(offset).Find(out).Error
-	if err != nil && gorm.IsRecordNotFoundError(err) {
-		err = nil // 忽略没有数据的错误
-	}
+	err = IgnoreNotFoundError(err)
 	return
 }
