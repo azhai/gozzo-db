@@ -66,6 +66,7 @@ func GuessStructTags(ci *schema.ColumnInfo) string {
 	}
 	if ci.IsNotNull() {
 		tag.Set("not null", "")
+		tag.Set("default", ci.GetDefault())
 	}
 	if ci.Extra != "" {
 		tag.Set(ci.Extra, "")
@@ -74,8 +75,10 @@ func GuessStructTags(ci *schema.ColumnInfo) string {
 		tag.Set("comment", common.WrapWith(ci.Comment, "'", "'"))
 	}
 	// gorm默认的varchar长度为255，不需要再标注
-	if size := ci.GetSize(); size > 0 && size != 255 {
+	if size := ci.GetSize(); size >= 100 {
 		tag.Set("size", fmt.Sprintf("%d", size))
+	} else if size > 0 || strings.Contains(ci.FullType, "text") {
+		tag.Set("type", ci.FullType)  // 可能为char、text类型
 	}
 	if size, scale := ci.GetPrecision(); size > 0 {
 		tag.Set("precision", fmt.Sprintf("%d,%d", size, scale))

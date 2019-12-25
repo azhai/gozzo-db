@@ -1,17 +1,25 @@
 [application]
     debug        = true
-    output_dir   = "./models"  #models输出目录
-    plural_table = false       #表名是否使用复数
-    null_pointer = true        #字段可为NULL时，使用对应的指针类型
+    output_dir   = "./cmd/models"           #models输出目录
+    data_file    = "./cmd/tmp/data.toml"    #初始化数据文件
+    plural_table = false                    #表名是否使用复数
+    null_pointer = true                     #string,time字段可为NULL时，使用对应的指针类型
+
+[connections.cache]
+    driver   = "redis"
+    host     = "127.0.0.1"
+    port     = 6379
+    password = ""
+    database = "0"
 
 [connections.default]
-    driver   = "mysql"         #数据库类型
+    driver   = "mysql"                      #数据库类型
     host     = "127.0.0.1"
     port     = 3306
     username = "root"
     password = ""
     database = "test"
-    prefix   = "t_"            #表名前缀
+    prefix   = "t_"                         #表名前缀
     options  = { charset="utf8mb4" }
 
 [connections.sqlite]
@@ -19,9 +27,12 @@
     database = "./test.db"
 
 [modelRules._]
-    created_at = { type="time.Time", comment="创建时间" }
-    updated_at = { type="time.Time", comment="更新时间" }
-    deleted_at = { type="*time.Time", comment="删除时间" }
+    created_at = { type="time.Time", json="CreatedAt", comment="创建时间" }
+    updated_at = { type="time.Time", json="UpdatedAt", comment="更新时间" }
+    deleted_at = { type="*time.Time", json="DeletedAt", comment="删除时间" }
 
 [modelRules.t_user]
     password   = { json="-", comment="密码" }
+
+[modelRules.t_group]
+    gid   = { name="GID", comment="唯一ID" }

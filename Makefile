@@ -3,7 +3,7 @@ UPXBIN=/usr/local/bin/upx
 GOBIN=/usr/local/bin/go
 GOOS=$(shell uname -s | tr [A-Z] [a-z])
 GOARGS=GOARCH=amd64 CGO_ENABLED=0
-APPS=$(shell ls -1 ./cmd/ | grep -v "\." | grep -v tmp | xargs)
+APPS=$(shell ls -1 ./cmd/ | grep -v "\." | grep -v tmp | grep -v models | sort -r | xargs)
 
 .PHONY: all
 all: clean build

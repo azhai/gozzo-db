@@ -2,6 +2,7 @@ package export
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 
@@ -15,8 +16,16 @@ var tomlBuffer = new(bytes.Buffer)
 
 type Dict = map[string]interface{}
 
+func StrcutCopy(dst, src interface{}) error {
+	tmp, err := json.Marshal(src)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(tmp, dst)
+}
+
 // 将Dict转为具体对象，键名与属性名匹配时，使用toml标签或不区分大小写的方式
-func ConvertToml(src Dict, dst interface{}) error {
+func ConvertToml(dst interface{}, src Dict) error {
 	tomlBuffer.Reset()
 	err := toml.NewEncoder(tomlBuffer).Encode(src)
 	if err != nil {
@@ -30,7 +39,7 @@ func ConvertToml(src Dict, dst interface{}) error {
 func InsertRows(scope *gorm.Scope, rows []Dict, verbose bool) error {
 	db := scope.DB()
 	for _, row := range rows {
-		if err := ConvertToml(row, scope.Value); err != nil {
+		if err := ConvertToml(scope.Value, row); err != nil {
 			return err
 		}
 		if field := scope.PrimaryField(); field != nil {
@@ -58,7 +67,7 @@ func LoadFileData(db *gorm.DB, fname string, models []interface{}, verbose bool)
 		if rows, ok := temp[tableName]; ok {
 			info, ok := tbInfos[tableName]
 			if !ok || info.TableRows >= int64(len(rows)) {
-				continue // 可能会重复导入
+				continue // 简单地避免重复导入
 			}
 			if verbose {
 				fmt.Printf("Insert %d rows into table %s\n", len(rows), tableName)
@@ -95,6 +104,36 @@ func (ep *Exportor) AddObject(obj interface{}, group string) bool {
 	}
 	ep.Data[group] = append(ep.Data[group], obj)
 	return true
+}
+
+func (ep *Exportor) AddQueryResult(val interface{}, query *gorm.DB) (count int) {
+	var table string
+	if table = GetTableName(val, ""); table == "" {
+		return
+	}
+	rows, err := query.Table(table).Rows()
+	if err != nil {
+		return
+	}
+	// 分解查询结果集
+	var objs []interface{}
+	for rows.Next() {
+		query.ScanRows(rows, val)
+		var obj interface{}
+		if err = StrcutCopy(&obj, val); err == nil {
+			objs = append(objs, obj)
+		}
+	}
+	// 添加到对应组下面
+	if count = len(objs); count == 0 {
+		return
+	}
+	if _objs, ok := ep.Data[table]; ok && len(_objs) > 0 {
+		ep.Data[table] = append(_objs, objs...)
+	} else {
+		ep.Data[table] = objs
+	}
+	return
 }
 
 func (ep *Exportor) SetBuffer(buf *bytes.Buffer) error {

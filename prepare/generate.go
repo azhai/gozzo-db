@@ -79,15 +79,15 @@ func CreateModels(conf *Config, db *gorm.DB) (names []string, err error) {
 		cs := rewrite.NewCodeSource()
 		err = cs.SetPackage("models")
 		// 添加可能引用的包，后面再尝试删除不一定会用的包
-		cs.AddImport("github.com/azhai/gozzo-db/construct", "base")
-		cs.AddImport("github.com/jinzhu/gorm", "")
 		cs.AddImport("database/sql", "")
 		cs.AddImport("time", "")
+		cs.AddImport("github.com/azhai/gozzo-db/construct", "base")
+		cs.AddImport("github.com/jinzhu/gorm", "")
 		err = cs.AddCode(buf.Bytes())
 		// 尝试删除，已用到的包不会被删除
-		cs.DelImport("github.com/jinzhu/gorm", "")
 		cs.DelImport("database/sql", "")
 		cs.DelImport("time", "")
+		cs.DelImport("github.com/jinzhu/gorm", "")
 		err = cs.WriteTo(fname)
 	}
 	return
@@ -135,6 +135,8 @@ func GenInitFile(conf *Config, names []string) error {
 	cs.AddImport("github.com/jinzhu/gorm", "")
 	cs.AddImport("github.com/jinzhu/gorm/dialects/"+driverName, "_")
 	err = cs.AddCode(buf.Bytes())
+	// 尝试删除，已用到的包不会被删除
+	cs.DelImport("github.com/jinzhu/gorm", "")
 	cs.DelImport("github.com/azhai/gozzo-db/cache", "")
 	cs.DelImport("github.com/azhai/gozzo-db/export", "")
 	cs.DelImport("github.com/azhai/gozzo-db/prepare", "")

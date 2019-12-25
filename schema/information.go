@@ -173,13 +173,13 @@ func ColumnDefaultValue(typeName string) string {
 	case "BIT", "BINARY", "VARBINARY":
 		return "''"
 	case "BOOL", "BOOLEAN", "TINYINT":
-		return "0"
+		return "'0'"
 	case "INT", "INTEGER", "SMALLINT", "YEAR":
-		return "0"
+		return "'0'"
 	case "BIGINT", "MEDIUMINT", "NUMERIC":
-		return "0"
+		return "'0'"
 	case "DECIMAL", "DOUBLE", "FLOAT", "REAL":
-		return "0.0"
+		return "'0.0'"
 	case "TIME", "TIMESTAMP", "DATETIME":
 		return "'0000-00-00 00:00:00'"
 	case "DATE":

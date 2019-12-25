@@ -31,6 +31,7 @@ func GetConfig(fileName string) (*Config, error) {
 type AppConfig struct {
 	Debug       bool   `toml:"debug"`
 	OutputDir   string `toml:"output_dir"`   // 输出目录，例如 models
+	DataFile    string `toml:"data_file"`    // 数据文件，例如 data.toml
 	PluralTable bool   `toml:"plural_table"` // 表名使用复数形式
 	NullPointer bool   `toml:"null_pointer"` // 字段可为NULL时，使用对应的指针类型
 }

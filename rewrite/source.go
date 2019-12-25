@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 
 	"golang.org/x/tools/go/ast/astutil"
+	"golang.org/x/tools/imports"
 )
 
 func PrintNodes(objs ...interface{}) {
@@ -76,7 +77,17 @@ func (cs *CodeSource) WriteTo(filename string) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(filename, code, 0644)
+	// imports分组排序
+	var dst []byte
+	err = ioutil.WriteFile(filename, code, 0644)
+	if err != nil {
+		return err
+	}
+	dst, err = imports.Process(filename, code, nil)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(filename, dst, 0644)
 }
 
 func (cs *CodeSource) GetPackage() string {

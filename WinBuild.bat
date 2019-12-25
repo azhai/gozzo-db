@@ -1,9 +1,9 @@
 @ECHO OFF
 
-del code2mysql.exe export2toml.exe table2file.exe
+del table2file.exe load4toml.exe
 
-go.exe build -ldflags="-s -w" ./cmd/code2mysql/
-go.exe build -ldflags="-s -w" ./cmd/export2toml/
 go.exe build -ldflags="-s -w" ./cmd/table2file/
+table2file.exe -f settings.toml
+go.exe build -ldflags="-s -w" ./cmd/load4toml/
 
 PAUSE

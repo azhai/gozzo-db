@@ -52,6 +52,11 @@ var (
 
 type BaseModel = base.Model
 
+// 忽略表中无数据的错误
+func IgnoreNotFoundError(err error) error {
+	return base.IgnoreNotFoundError(err)
+}
+
 // 获取当前db
 func Query() *gorm.DB {
 	return db
@@ -60,14 +65,6 @@ func Query() *gorm.DB {
 // 查询某张数据表
 func QueryTable(name string) *gorm.DB {
 	return db.Table(name)
-}
-
-// 忽略表中无数据的错误
-func IgnoreNotFoundError(err error) error {
-	if err == nil || gorm.IsRecordNotFoundError(err) {
-		return nil
-	}
-	return err
 }
 
 // 连接数据库
@@ -95,7 +92,6 @@ func init() {
 		db.Set("gorm:table_options", "ENGINE=InnoDB")
 	}
 	db = MigrateTables(drv, db)
-	db = FillRequiredData(drv, db)
 }
 
 // 自动建表，如果缺少表或字段会加上
@@ -109,11 +105,6 @@ func MigrateTables(drv string, db *gorm.DB) *gorm.DB {
 	if drv == "mysql" { // 更新MySQL表注释
 		db = export.AlterTableComments(db, ModelInsts...)
 	}
-	return db
-}
-
-// 写入必须的初始化数据
-func FillRequiredData(drv string, db *gorm.DB) *gorm.DB {
 	return db
 }`,
 }

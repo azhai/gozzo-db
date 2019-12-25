@@ -6,9 +6,9 @@ import (
 
 // 嵌套集合树
 type NestedNode struct {
-	Lft   uint  `json:"-" gorm:"not null;index;default:0;comment:'左边界'"` // 左边界
-	Rgt   uint  `json:"-" gorm:"not null;index;default:0;comment:'右边界'"` // 右边界
-	Depth uint8 `json:"depth" gorm:"not null;default:0;comment:'高度'"`    // 高度
+	Lft   uint  `json:"-" gorm:"not null;default:0;comment:'左边界'"`          // 左边界
+	Rgt   uint  `json:"-" gorm:"not null;index;default:0;comment:'右边界'"`    // 右边界
+	Depth uint8 `json:"depth" gorm:"not null;index;default:1;comment:'高度'"` // 高度
 }
 
 // 是否叶子节点
@@ -21,7 +21,7 @@ func (n NestedNode) CountChildren() int {
 	return int(n.Rgt-n.Lft-1) / 2
 }
 
-// 找出所有祖先节点
+// 找出所有直系祖先节点
 func (n NestedNode) AncestorsFilter(Backward bool) FilterFunc {
 	return func(query *gorm.DB) *gorm.DB {
 		query = query.Where("rgt > ? AND lft < ?", n.Rgt, n.Lft)
@@ -42,26 +42,26 @@ func (n NestedNode) ChildrenFilter(rank uint8) FilterFunc {
 		if rank > 0 { // 限制层级
 			query = query.Where("depth < ?", n.Depth+rank)
 		}
-		if rank == 1 { // 只有一层，两种排序等价，尽量使用rgt作为索引
-			return query.Order("rgt ASC")
-		} else {
-			return query.Order("lft ASC")
+		if rank != 1 { // 多层先按高度排序
+			query = query.Order("depth ASC")
 		}
+		return query.Order("rgt ASC")
+
 	}
 }
 
-// 添加到父节点最末，query一定要使用db.Table(...)
-func (n *NestedNode) AddToParent(parent *NestedNode, query *gorm.DB) error {
-	var finder = query.Order("rgt DESC")
+// 添加到父节点最末，tbQuery一定要使用db.Table(...)
+func (n *NestedNode) AddToParent(parent *NestedNode, tbQuery *gorm.DB) error {
+	var query = tbQuery.Order("rgt DESC")
 	if parent == nil {
 		n.Depth = 1
 	} else {
 		n.Depth = parent.Depth + 1
-		finder = finder.Where("rgt < ? AND lft > ?", parent.Rgt, parent.Lft)
+		query = query.Where("rgt < ? AND lft > ?", parent.Rgt, parent.Lft)
 	}
-	finder = finder.Where("depth = ?", n.Depth)
+	query = query.Where("depth = ?", n.Depth)
 	sibling := new(NestedNode)
-	err := finder.Take(&sibling).Error
+	err := query.Take(&sibling).Error
 	if err = IgnoreNotFoundError(err); err != nil {
 		return err
 	}
@@ -76,20 +76,24 @@ func (n *NestedNode) AddToParent(parent *NestedNode, query *gorm.DB) error {
 	}
 	n.Rgt = n.Lft + 1
 	if n.Depth > 1 {
-		err = MoveEdge(query, n.Lft, "+ 2")
+		err = MoveEdge(tbQuery, n.Lft, "+ 2")
 	}
 	return err
 }
 
 // 左右边界整体移动
 func MoveEdge(query *gorm.DB, base uint, offset string) (err error) {
-	err = query.Where("rgt >= ?", base).Update("rgt", gorm.Expr("rgt "+offset)).Error
+	// 更新右边界
+	query = query.Where("rgt >= ?", base) // 下面的更新lft也要用rgt作为索引
+	err = query.Update("rgt", gorm.Expr("rgt "+offset)).Error
 	if err = IgnoreNotFoundError(err); err != nil {
 		return
 	}
-	// 当右边界只有一个变动，说明父类是第一层的最末一个，这时左边界没有符合条件的数据
+	// 更新左边界，范围一定在上面更新右边界的所有行之内
+	// 要么和上面一起为空，要么比上面少>=n行，n为直系祖先数量
 	if query.RowsAffected > 1 {
-		err = query.Where("lft >= ?", base).Update("lft", gorm.Expr("lft "+offset)).Error
+		query = query.Where("lft >= ?", base)
+		err = query.Update("lft", gorm.Expr("lft "+offset)).Error
 		err = IgnoreNotFoundError(err)
 	}
 	return
