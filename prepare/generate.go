@@ -165,7 +165,11 @@ func GenTagComment(col *schema.ColumnInfo, rule RuleConfig) string {
 		rule.Json = col.FieldName
 	}
 	if rule.Tags == "" {
-		rule.Tags = base.GuessStructTags(col)
+		tag := base.GuessStructTags(col)
+		if rule.Name != "" { // 非常规属性名,需要设置字段名
+			tag.Set("column", col.FieldName)
+		}
+		rule.Tags = tag.String("gorm")
 	}
 	if rule.Tags != "" {
 		blank = " "

@@ -2,7 +2,6 @@ package export
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 
@@ -15,14 +14,6 @@ import (
 var tomlBuffer = new(bytes.Buffer)
 
 type Dict = map[string]interface{}
-
-func StrcutCopy(dst, src interface{}) error {
-	tmp, err := json.Marshal(src)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(tmp, dst)
-}
 
 // 将Dict转为具体对象，键名与属性名匹配时，使用toml标签或不区分大小写的方式
 func ConvertToml(dst interface{}, src Dict) error {
@@ -119,10 +110,8 @@ func (ep *Exportor) AddQueryResult(val interface{}, query *gorm.DB) (count int) 
 	var objs []interface{}
 	for rows.Next() {
 		query.ScanRows(rows, val)
-		var obj interface{}
-		if err = StrcutCopy(&obj, val); err == nil {
-			objs = append(objs, obj)
-		}
+		// 复制数据避免一直修改同一个对象
+		objs = append(objs, CopyObject(val))
 	}
 	// 添加到对应组下面
 	if count = len(objs); count == 0 {

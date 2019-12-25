@@ -53,7 +53,7 @@ func GuessTypeName(ci *schema.ColumnInfo) string {
 }
 
 // 根据数据库字段属性设置Struct tags
-func GuessStructTags(ci *schema.ColumnInfo) string {
+func GuessStructTags(ci *schema.ColumnInfo) *SqlTag {
 	tag := NewSqlTag()
 	if ci.IsIndex() {
 		if ci.IndexType == schema.PrimaryKey {
@@ -64,6 +64,7 @@ func GuessStructTags(ci *schema.ColumnInfo) string {
 			tag.Set("index", "")
 		}
 	}
+
 	if ci.IsNotNull() {
 		tag.Set("not null", "")
 		tag.Set("default", ci.GetDefault())
@@ -74,14 +75,22 @@ func GuessStructTags(ci *schema.ColumnInfo) string {
 	if ci.Comment != "" {
 		tag.Set("comment", common.WrapWith(ci.Comment, "'", "'"))
 	}
-	// gorm默认的varchar长度为255，不需要再标注
-	if size := ci.GetSize(); size >= 100 {
+	
+	// 可能为char、text类型
+	size := ci.GetSize()
+	if strings.HasPrefix(ci.FullType, "char") && size < 100 {
+		tag.Set("type", ci.FullType) 
+	} else if strings.HasPrefix(ci.FullType, "enum") {
+		tag.Set("type", ci.FullType)
+	} else if strings.HasPrefix(ci.FullType, "set") {
+		tag.Set("type", ci.FullType)
+	} else if strings.Contains(ci.FullType, "text") {
+		tag.Set("type", ci.FullType)
+	} else if size > 0 && size != 255 { // gorm默认的varchar长度为255，不需要再标注
 		tag.Set("size", fmt.Sprintf("%d", size))
-	} else if size > 0 || strings.Contains(ci.FullType, "text") {
-		tag.Set("type", ci.FullType)  // 可能为char、text类型
 	}
-	if size, scale := ci.GetPrecision(); size > 0 {
-		tag.Set("precision", fmt.Sprintf("%d,%d", size, scale))
+	if prec, scale := ci.GetPrecision(); prec > 0 {
+		tag.Set("precision", fmt.Sprintf("%d,%d", prec, scale))
 	}
-	return tag.String("gorm")
+	return tag
 }
