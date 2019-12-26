@@ -1,8 +1,8 @@
 package prepare
 
 var templates = map[string]string{
-	// model 文件模板
-	"gen_model.tmpl": `
+	// table 文件模板
+	"gen_table.tmpl": `
 {{$rules := .Rules}}
 {{$np := .NullPointer}}
 // {{.Table.TableComment}}
@@ -22,10 +22,14 @@ func ({{.Name}}) TableName() string {
 	return "{{.Table.TableName}}"
 }
 
+// 数据表备注
 func ({{.Name}}) TableComment() string {
 	return "{{.Table.TableComment}}"
-}
+}`,
 
+
+	// query 文件模板
+	"gen_query.tmpl": `
 // 查询符合条件的所有行
 func (m {{.Name}}) FindAll(filters ...base.FilterFunc) (objs []*{{.Name}}, err error) {
 	err = db.Model(m).Scopes(filters...).Find(&objs).Error
@@ -40,6 +44,7 @@ func (m {{.Name}}) GetOne(filters ...base.FilterFunc) (obj *{{.Name}}, err error
 	err = IgnoreNotFoundError(err)
 	return
 }`,
+
 
 	// init 文件模板
 	"gen_init.tmpl": `

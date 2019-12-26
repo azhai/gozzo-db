@@ -1,9 +1,10 @@
 @ECHO OFF
 
-del table2file.exe load4toml.exe
+del gen2model.exe sync2table.exe dump2file.exe
 
-go.exe build -ldflags="-s -w" ./cmd/table2file/
-table2file.exe -f settings.toml
-go.exe build -ldflags="-s -w" ./cmd/load4toml/
+go.exe build -ldflags="-s -w" ./cmd/gen2model/
+gen2model.exe -f settings.toml
+go.exe build -ldflags="-s -w" ./cmd/sync2table/
+go.exe build -ldflags="-s -w" ./cmd/dump2file/
 
 PAUSE

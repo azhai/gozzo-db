@@ -11,7 +11,7 @@
 *.txt
 *.upx
 *.vscode
-code2mysql
-load4toml
-table2file
+dump2file
+gen2model
+sync2table
 vendor/

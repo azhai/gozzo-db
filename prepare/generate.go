@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"path"
 	"sort"
 	"strings"
@@ -16,86 +17,161 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-var TemplateNotFound = errors.New("template not found")
+const (
+	MODE_SAFE uint = iota
+	MODE_INIT
+	MODE_TWO_FILES
+	MODE_THREE_FILES
+	MODE_QUERY_DISTRI
+	MODE_TABLE_DISTRI
+)
 
-func GetTemplate(name string, funcMap template.FuncMap) *template.Template {
-	if fsize, _ := filesystem.FileSize(filesystem.GetAbsFile(name)); fsize > 0 {
-		// New()名称要与ParseFiles()文件名一致 Funcs()必须在Parse之前
-		t := template.New(name).Funcs(funcMap)
-		return template.Must(t.ParseFiles(name))
+var (
+	TemplateNotFound = errors.New("template not found")
+	TemplateModeIntros = map[uint]string {
+		MODE_SAFE: "安全模式，与 5 类似，但会在每个文件名前面加一个下划线",
+		MODE_INIT: "只生成 init.go 文件",
+		MODE_TWO_FILES: "除了 init.go 文件， table 和 query 都放入 tables.go 中",
+		MODE_THREE_FILES: "除了 init.go 文件， table 都放入 tables.go 中， query 都放入 queries.go 中",
+		MODE_QUERY_DISTRI: "除了 init.go 文件， table 都放入 tables.go 中， query 分开放入对应模型名文件中",
+		MODE_TABLE_DISTRI: "除了 init.go 文件， table 和 query 一起放入对应模型名文件中",
 	}
-	if content, ok := templates[path.Base(name)]; ok {
-		// Funcs()必须在Parse之前
-		t := template.New(name).Funcs(funcMap)
-		return template.Must(t.Parse(content))
+)
+
+func GetTemplate(funcMap template.FuncMap, name, fname string, others ...string) *template.Template {
+	var buf bytes.Buffer
+	// Funcs()必须在Parse之前
+	t := template.New(name).Funcs(funcMap)
+	for i := -1; i < len(others); i++ {
+		if i >= 0 {
+			fname = others[i]
+		}
+		fpath := filesystem.GetAbsFile(fname)
+		if fsize, _ := filesystem.FileSize(fpath); fsize > 0 {
+			if ftext, err := ioutil.ReadFile(fpath); err == nil {
+				buf.WriteString("\n\n")
+				buf.Write(ftext)
+			}
+		} else if text, ok := templates[path.Base(fname)]; ok {
+			buf.WriteString(text)
+		}
 	}
-	return nil
+	return template.Must(t.Parse(buf.String()))
 }
 
-func CreateModels(conf *Config, db *gorm.DB) (names []string, err error) {
+func CreateModels(conf *Config, db *gorm.DB, mode uint) (names []string, err error) {
+	// 模板
 	var funcMap = template.FuncMap{
 		"GetRule":       GetRule,
 		"GenNameType":   GenNameType,
 		"GenTagComment": GenTagComment,
 	}
-	t := GetTemplate("gen_model.tmpl", funcMap)
-	if t == nil {
-		return nil, TemplateNotFound
+	var tpl, tpl2 *template.Template
+	if mode != MODE_INIT {
+		if mode == MODE_THREE_FILES || mode == MODE_QUERY_DISTRI {
+			tpl = GetTemplate(funcMap, "gen_table", "gen_table.tmpl")
+			tpl2 = GetTemplate(funcMap, "gen_query", "gen_query.tmpl")
+			if tpl2 == nil {
+				return nil, TemplateNotFound
+			}
+		} else {
+			tpl = GetTemplate(funcMap, "gen_model", "gen_table.tmpl", "gen_query.tmpl")
+		}
+		if tpl == nil {
+			return nil, TemplateNotFound
+		}
 	}
-
-	var buf bytes.Buffer
-	app := conf.Application
+	// 参数
+	filePre := ""
+	if mode == MODE_SAFE {
+		filePre = "_"
+	}
+	outDir := conf.Application.OutputDir
+	isPlural := conf.Application.PluralTable
 	tablePrefix := conf.GetTablePrefix(conf.ConnName)
+
+	tableNames := make(map[string]string)
 	s := schema.NewSchema(db.DB())
-	for i, table := range s.GetTableNames("") {
-		// 收集数据
-		cols := s.GetColumnInfos(table, "")
-		tbInfo := s.GetTableInfo(table, "")
+	for _, tableName := range s.GetTableNames("") {
+		table := tableName
 		if tablePrefix != "" && strings.HasPrefix(table, tablePrefix) {
 			table = table[len(tablePrefix):]
 		}
-		if app.PluralTable {
+		if isPlural {
 			table = ToSingular(table)
 		}
 		name := ToCamel(table)
 		names = append(names, name)
+		tableNames[name] = tableName
+	}
+	sort.Strings(names)
+	if mode == MODE_INIT { // 此模式只生成init.go文件
+		return
+	}
 
-		// 渲染模板
+	var buf, buf2 bytes.Buffer
+	for _, name := range names {
+		tableName := tableNames[name]
+		// 收集数据，渲染模板
+		tbInfo := s.GetTableInfo(tableName, "")
 		data := map[string]interface{}{
-			"Name": name, "Table": tbInfo, "Columns": cols,
+			"Name": name, "Table": tbInfo,
+			"Columns": s.GetColumnInfos(tableName, ""),
 			"Rules": conf.GetRules(tbInfo.TableName),
 			"NullPointer": conf.Application.NullPointer,
 		}
-		buf.Reset()
-		if err = t.Execute(&buf, data); err != nil {
+		if mode == MODE_SAFE || mode == MODE_TABLE_DISTRI {
+			buf.Reset()
+		}
+		if err = tpl.Execute(&buf, data); err != nil {
 			continue
 		}
-
-		// 写入文件
-		fname := fmt.Sprintf("%s/%s.go", app.OutputDir, table)
-		if i == 0 {
-			MkdirForFile(fname)
+		if mode == MODE_THREE_FILES || mode == MODE_QUERY_DISTRI {
+			if mode == MODE_QUERY_DISTRI {
+				buf2.Reset()
+			}
+			if err = tpl2.Execute(&buf2, data); err != nil {
+				continue
+			}
 		}
-		cs := rewrite.NewCodeSource()
-		err = cs.SetPackage("models")
-		// 添加可能引用的包，后面再尝试删除不一定会用的包
-		cs.AddImport("database/sql", "")
-		cs.AddImport("time", "")
-		cs.AddImport("github.com/azhai/gozzo-db/construct", "base")
-		cs.AddImport("github.com/jinzhu/gorm", "")
-		err = cs.AddCode(buf.Bytes())
-		// 尝试删除，已用到的包不会被删除
-		cs.DelImport("database/sql", "")
-		cs.DelImport("time", "")
-		cs.DelImport("github.com/jinzhu/gorm", "")
-		err = cs.WriteTo(fname)
+		// 写入文件
+		fname := fmt.Sprintf("%s/%s%s.go", outDir, filePre,  strings.ToLower(name))
+		if mode == MODE_SAFE || mode == MODE_TABLE_DISTRI {
+			err = WriteModelFile(buf, fname)
+		} else {
+			if mode == MODE_QUERY_DISTRI {
+				err = WriteModelFile(buf2, fname)
+			}
+			if mode == MODE_THREE_FILES {
+				fname = fmt.Sprintf("%s/queries.go", outDir)
+				err = WriteModelFile(buf2, fname)
+			}
+			fname = fmt.Sprintf("%s/tables.go", outDir)
+			err = WriteModelFile(buf, fname)
+		}
 	}
 	return
 }
 
-func GenInitFile(conf *Config, names []string) error {
+func GenInitFile(conf *Config, names []string, mode uint) (err error) {
+	// 模板
+	tpl := GetTemplate(nil, "gen_init", "gen_init.tmpl")
+	if tpl == nil {
+		return TemplateNotFound
+	}
+	// 参数
+	filePre := ""
+	if mode == MODE_SAFE {
+		filePre = "_"
+	}
+	outDir := conf.Application.OutputDir
+	isPlural := conf.Application.PluralTable
+	tablePrefix := conf.GetTablePrefix(conf.ConnName)
+	driverName := conf.GetDriverName(conf.ConnName)
+	fname := fmt.Sprintf("%s/%sinit.go", outDir, filePre)
+
+	// 收集数据，渲染模板
 	var buf bytes.Buffer
-	app := conf.Application
 	sort.Strings(names)
 	for i, name := range names {
 		if i > 0 && i%3 == 0 {
@@ -104,27 +180,46 @@ func GenInitFile(conf *Config, names []string) error {
 		buf.WriteString(fmt.Sprintf("&%s{}, ", name))
 	}
 	models := buf.String()
-
-	// 渲染模板
-	driverName := conf.GetDriverName(conf.ConnName)
-	tablePrefix := conf.GetTablePrefix(conf.ConnName)
 	data := map[string]interface{}{
 		"FileName": conf.FileName, "ConnName": conf.ConnName,
-		"Prefix": tablePrefix, "Plural": app.PluralTable, "Models": models,
-	}
-	t := GetTemplate("gen_init.tmpl", nil)
-	if t == nil {
-		return TemplateNotFound
+		"Prefix": tablePrefix, "Plural": isPlural, "Models": models,
 	}
 	buf.Reset()
-	if err := t.Execute(&buf, data); err != nil {
+	if err := tpl.Execute(&buf, data); err != nil {
 		return err
 	}
-
 	// 写入文件
-	fname := fmt.Sprintf("%s/init.go", app.OutputDir)
+	return WriteInitFile(buf, fname, driverName)
+}
+
+func WriteModelFile(buf bytes.Buffer, fname string) (err error) {
+	// 写入文件
 	cs := rewrite.NewCodeSource()
-	err := cs.SetPackage("models")
+	if err = cs.SetPackage("models"); err != nil {
+		return
+	}
+	// 添加可能引用的包，后面再尝试删除不一定会用的包
+	cs.AddImport("database/sql", "")
+	cs.AddImport("time", "")
+	cs.AddImport("github.com/azhai/gozzo-db/construct", "base")
+	cs.AddImport("github.com/jinzhu/gorm", "")
+	if err = cs.AddCode(buf.Bytes()); err != nil {
+		return
+	}
+	// 尝试删除，已用到的包不会被删除
+	cs.DelImport("database/sql", "")
+	cs.DelImport("time", "")
+	cs.DelImport("github.com/jinzhu/gorm", "")
+	err = cs.WriteTo(fname)
+	return
+}
+
+func WriteInitFile(buf bytes.Buffer, fname, driverName string) (err error) {
+	// 写入文件
+	cs := rewrite.NewCodeSource()
+	if err = cs.SetPackage("models"); err != nil {
+		return
+	}
 	// 以下包在默认模板都会引用
 	cs.AddImport("log", "")
 	cs.AddImport("os", "")
@@ -134,7 +229,9 @@ func GenInitFile(conf *Config, names []string) error {
 	cs.AddImport("github.com/azhai/gozzo-db/prepare", "")
 	cs.AddImport("github.com/jinzhu/gorm", "")
 	cs.AddImport("github.com/jinzhu/gorm/dialects/"+driverName, "_")
-	err = cs.AddCode(buf.Bytes())
+	if err = cs.AddCode(buf.Bytes()); err != nil {
+		return
+	}
 	// 尝试删除，已用到的包不会被删除
 	cs.DelImport("github.com/jinzhu/gorm", "")
 	cs.DelImport("github.com/azhai/gozzo-db/cache", "")

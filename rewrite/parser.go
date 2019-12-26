@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func GetNames(ids []*ast.Ident) (names []string) {
+func GetNameList(ids []*ast.Ident) (names []string) {
 	for _, id := range ids {
 		names = append(names, id.Name)
 	}
@@ -40,6 +40,7 @@ func (n *FieldNode) GetTag() reflect.StructTag {
 
 type DeclNode struct {
 	Token   token.Token
+	Kinds   []string
 	Names   []string
 	Fields  []*FieldNode
 	Comment *ast.CommentGroup
@@ -52,17 +53,27 @@ func NewDeclNode(decl ast.Decl, offset int, position token.Pos) (n *DeclNode, er
 	if gen, ok := decl.(*ast.GenDecl); ok {
 		n.Comment = gen.Doc
 		n.Token = gen.Tok // IMPORT, CONST, TYPE, VAR
+		n.Kinds = []string{n.Token.String()}
 		gen.TokPos += position
 		err = n.ParseGenDecl(gen)
 	} else if fun, ok := decl.(*ast.FuncDecl); ok {
 		n.Comment = fun.Doc
 		n.Token = token.FUNC
+		n.Kinds = []string{n.Token.String()}
 		fun.Type.Func += position
 		err = n.ParseFunDecl(fun)
 	} else {
 		n.Token = token.ILLEGAL
 	}
 	return
+}
+
+func (n DeclNode) GetKind() string {
+	return strings.Join(n.Kinds, ".")
+}
+
+func (n DeclNode) GetName() string {
+	return strings.Join(n.Names, ", ")
 }
 
 func (n *DeclNode) ParseFunDecl(fun *ast.FuncDecl) (err error) {
@@ -73,7 +84,7 @@ func (n *DeclNode) ParseFunDecl(fun *ast.FuncDecl) (err error) {
 func (n *DeclNode) ParseGenDecl(gen *ast.GenDecl) (err error) {
 	for _, spec := range gen.Specs {
 		if s, ok := spec.(*ast.ValueSpec); ok {
-			n.Names = GetNames(s.Names)
+			n.Names = GetNameList(s.Names)
 		} else if s, ok := spec.(*ast.ImportSpec); ok {
 			if s.Name != nil {
 				n.Names = []string{s.Name.Name}
@@ -83,6 +94,7 @@ func (n *DeclNode) ParseGenDecl(gen *ast.GenDecl) (err error) {
 				n.Names = []string{s.Name.Name}
 			}
 			if t, ok := s.Type.(*ast.StructType); ok {
+				n.Kinds = append(n.Kinds, "struct")
 				err = n.ParseStruct(t.Fields.List)
 			}
 		}
@@ -93,7 +105,7 @@ func (n *DeclNode) ParseGenDecl(gen *ast.GenDecl) (err error) {
 func (n *DeclNode) ParseStruct(fields []*ast.Field) (err error) {
 	for _, f := range fields {
 		n.Fields = append(n.Fields, &FieldNode{
-			Names:   GetNames(f.Names),
+			Names:   GetNameList(f.Names),
 			Comment: f.Comment,
 			Field:   f,
 		})

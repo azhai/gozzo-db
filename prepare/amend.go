@@ -14,24 +14,27 @@ import (
 	"github.com/azhai/gozzo-utils/filesystem"
 )
 
-var (
-	sourceDir  = "models/"
-	targetDir = "cmd/tmp/"
-)
+type Options struct {
+	SourceDir        string // 源码目录，例如 models
+	TargetDir        string // 临时目录，例如 cmd/tmp
+	TablePrefix      string // 表名前缀，例如 t_
+	BaseName         string // 基础Model名称
+	OnlyTableComment bool   // 只修改表注释
+}
 
 // 将代码中的表和字段注释，覆盖数据库的SQL语句注释
-func AmendComments(db *sql.DB, prefix string, onlyTable, verbose bool) error {
+func AmendComments(db *sql.DB, opts Options, verbose bool) error {
 	var buf bytes.Buffer
 	tables, colDefs := FindTables(db, verbose)
-	fname := filesystem.GetAbsFile(filepath.Join(targetDir, "models.go"))
+	fname := filesystem.GetAbsFile(filepath.Join(opts.TargetDir, "tables.go"))
 	if fsize := MkdirForFile(fname); fsize == 0 {
-		err := CollectCode(sourceDir, fname, "", verbose)
+		err := CollectCode(opts, fname, verbose)
 		if err != nil {
 			return err
 		}
 	}
 	var fp *os.File
-	outname := filesystem.GetAbsFile(filepath.Join(targetDir, "comments.sql"))
+	outname := filesystem.GetAbsFile(filepath.Join(opts.TargetDir, "comments.sql"))
 	flag := os.O_WRONLY | os.O_CREATE | os.O_TRUNC | os.O_APPEND
 	fp, err := os.OpenFile(outname, flag, 0644)
 	defer fp.Close()
@@ -39,13 +42,13 @@ func AmendComments(db *sql.DB, prefix string, onlyTable, verbose bool) error {
 		return err
 	}
 
-	tbComments, colComments := ParseModelComments(fname, prefix, verbose)
+	tbComments, colComments := ParseModelComments(fname, opts.TablePrefix, verbose)
 	tpl := "\tCHANGE `%s` `%s` %s COMMENT '%s',\n"
 	for i, table := range tables {
 		columns, comments := colDefs[i], colComments[table]
 		buf.Reset()
 		buf.WriteString(fmt.Sprintf("ALTER TABLE `%s`", table))
-		if !onlyTable {
+		if !opts.OnlyTableComment {
 			buf.WriteString("\n")
 			for col, def := range columns {
 				if comment, ok := comments[col]; ok {
@@ -93,17 +96,19 @@ func FindTables(db *sql.DB, verbose bool) ([]string, []map[string]string) {
 }
 
 // 在目录下所有的go代码中，找出baseModel子类的完整代码写入一个文件
-func CollectCode(dirname, outname, baseModel string, verbose bool) (err error) {
-	var data string = `package tmp
+func CollectCode(opts Options, outname string, verbose bool) (err error) {
+	var data = `package %s
 
 import (
 	"time"
 
 	base "github.com/azhai/gozzo-db/construct"
-	"github.com/jinzhu/gorm"
 )
+
+type BaseModel = base.Model
 `
-	files, err := ioutil.ReadDir(dirname)
+	data = fmt.Sprintf(data, filepath.Base(opts.TargetDir))
+	files, err := ioutil.ReadDir(opts.SourceDir)
 	if !CheckError(err) {
 		return
 	}
@@ -112,7 +117,7 @@ import (
 		if !strings.HasSuffix(fname, ".go") {
 			continue
 		}
-		fname = filepath.Join(dirname, fname)
+		fname = filepath.Join(opts.SourceDir, fname)
 		if verbose {
 			fmt.Println(fname)
 		}
@@ -120,15 +125,26 @@ import (
 		if !CheckError(err) {
 			continue
 		}
-		for _, node := range cp.AllDeclNode("type") {
-			if len(node.Fields) == 0 {
-				continue
-			}
-			if baseModel != "" { // 必须是某个Model的子类
-				ffcode := cp.GetNodeCode(node.Fields[0])
-				if strings.TrimSpace(ffcode) != baseModel {
+		for _, node := range cp.AllDeclNode("") {
+			kind := node.GetKind()
+			if kind == "func" {
+				name := node.GetName()
+				if !strings.HasSuffix(name, "TableName") &&
+						!strings.HasSuffix(name, "TableComment") {
 					continue
 				}
+			} else if kind == "type.struct" {
+				if len(node.Fields) == 0 {
+					continue
+				}
+				if opts.BaseName != "" { // 必须是某个Model的子类
+					ffcode := cp.GetNodeCode(node.Fields[0])
+					if strings.TrimSpace(ffcode) != opts.BaseName {
+						continue
+					}
+				}
+			} else {
+				continue
 			}
 			data += "\n\n"
 			if node.Comment != nil {
