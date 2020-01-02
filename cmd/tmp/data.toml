@@ -1,0 +1,186 @@
+[[t_access]]
+  RoleName = "superuser"
+  ResourceType = "menu"
+  ResourceArgs = "*"
+  PermCode = 512
+  Actions = "all"
+  GrantedAt = "2019-12-22T16:44:07+08:00"
+
+[[t_access]]
+  RoleName = "visitor"
+  ResourceType = "menu"
+  ResourceArgs = "/dashboard"
+  PermCode = 2
+  Actions = "view"
+  GrantedAt = "2019-12-22T16:44:07+08:00"
+
+[[t_access]]
+  RoleName = "visitor"
+  ResourceType = "menu"
+  ResourceArgs = "/error/404"
+  PermCode = 2
+  Actions = "view"
+  GrantedAt = "2019-12-22T16:44:07+08:00"
+
+[[t_menu]]
+  Lft = 1
+  Rgt = 2
+  Depth = 1
+  Path = "/dashboard"
+  Title = "面板"
+  Icon = "dashboard"
+  CreatedAt = 2019-12-24T11:51:43Z
+  UpdatedAt = 2019-12-24T11:51:43Z
+
+[[t_menu]]
+  Lft = 3
+  Rgt = 6
+  Depth = 1
+  Path = "/permission"
+  Title = "权限"
+  Icon = "lock"
+  CreatedAt = 2019-12-24T11:51:43Z
+  UpdatedAt = 2019-12-24T11:51:43Z
+
+[[t_menu]]
+  Lft = 4
+  Rgt = 5
+  Depth = 2
+  Path = "role"
+  Title = "角色权限"
+  CreatedAt = 2019-12-24T11:51:43Z
+  UpdatedAt = 2019-12-24T11:51:43Z
+
+[[t_menu]]
+  Lft = 7
+  Rgt = 12
+  Depth = 1
+  Path = "/table"
+  Title = "Table"
+  Icon = "table"
+  CreatedAt = 2019-12-24T11:51:43Z
+  UpdatedAt = 2019-12-24T11:51:43Z
+
+[[t_menu]]
+  Lft = 8
+  Rgt = 9
+  Depth = 2
+  Path = "complex-table"
+  Title = "复杂Table"
+  CreatedAt = 2019-12-24T11:51:43Z
+  UpdatedAt = 2019-12-24T11:51:43Z
+
+[[t_menu]]
+  Lft = 10
+  Rgt = 11
+  Depth = 2
+  Path = "inline-edit-table"
+  Title = "内联编辑"
+  CreatedAt = 2019-12-24T11:51:43Z
+  UpdatedAt = 2019-12-24T11:51:43Z
+
+[[t_menu]]
+  Lft = 13
+  Rgt = 18
+  Depth = 1
+  Path = "/excel"
+  Title = "Excel"
+  Icon = "excel"
+  CreatedAt = 2019-12-24T11:51:43Z
+  UpdatedAt = 2019-12-24T11:51:43Z
+
+[[t_menu]]
+  Lft = 14
+  Rgt = 15
+  Depth = 2
+  Path = "export-selected-excel"
+  Title = "选择导出"
+  CreatedAt = 2019-12-24T11:51:43Z
+  UpdatedAt = 2019-12-24T11:51:43Z
+
+[[t_menu]]
+  Lft = 16
+  Rgt = 17
+  Depth = 2
+  Path = "upload-excel"
+  Title = "上传Excel"
+  CreatedAt = 2019-12-24T11:51:43Z
+  UpdatedAt = 2019-12-24T11:51:43Z
+
+[[t_menu]]
+  Lft = 19
+  Rgt = 20
+  Depth = 1
+  Path = "/theme/index"
+  Title = "主题"
+  Icon = "theme"
+  CreatedAt = 2019-12-24T11:51:43Z
+  UpdatedAt = 2019-12-24T11:51:43Z
+
+[[t_menu]]
+  Lft = 21
+  Rgt = 22
+  Depth = 1
+  Path = "/error/404"
+  Title = "404错误"
+  Icon = "404"
+  CreatedAt = 2019-12-24T11:51:43Z
+  UpdatedAt = 2019-12-24T11:51:43Z
+
+[[t_menu]]
+  Lft = 23
+  Rgt = 24
+  Depth = 1
+  Path = "https://cn.vuejs.org/"
+  Title = "外部链接"
+  Icon = "link"
+  CreatedAt = 2019-12-24T11:51:43Z
+  UpdatedAt = 2019-12-24T11:51:43Z
+
+[[t_role]]
+  Name = "superuser"
+  Remark = "超级用户，无上权限的超级管理员。"
+  CreatedAt = 2019-11-30T19:12:00Z
+  UpdatedAt = 2019-11-30T19:12:00Z
+
+[[t_role]]
+  Name = "member"
+  Remark = "普通用户，除权限外的其他页面。"
+  CreatedAt = 2019-11-30T19:12:00Z
+  UpdatedAt = 2019-11-30T19:12:00Z
+
+[[t_role]]
+  Name = "visitor"
+  Remark = "基本用户，只能看到面板页。"
+  CreatedAt = 2019-11-30T19:12:00Z
+  UpdatedAt = 2019-11-30T19:12:00Z
+
+[[t_user]]
+  UID = "6kff25twcor76222"
+  Username = "admin"
+  Password = "09e8ff53$x1KWXASXqGRzA7YwipQhibg/0LMtkoU39VfW8EYtxAI="
+  Realname = "管理员"
+  PrinGid = ""
+  Avatar = "/avatars/avatar-admin.jpg"
+  Introduction = "不受限的超管账号。"
+  CreatedAt = 2019-11-30T19:12:00Z
+  UpdatedAt = 2019-11-30T19:12:00Z
+
+[[t_user]]
+  UID = "6kff25u4cor76223"
+  Username = "demo"
+  Password = "acfd1f8b$o6ySKi7yaMmZrKIaT4O/oGUoei6n/xKOXik4PtXuvwk="
+  Realname = "演示用户"
+  PrinGid = ""
+  Avatar = "/avatars/avatar-demo.jpg"
+  Introduction = "演示和测试账号。"
+  CreatedAt = 2019-11-30T19:12:00Z
+  UpdatedAt = 2019-11-30T19:12:00Z
+
+[[t_user_role]]
+  UserUID = "6kff25twcor76222"
+  RoleName = "superuser"
+
+[[t_user_role]]
+  UserUID = "6kff25u4cor76223"
+  RoleName = "member"

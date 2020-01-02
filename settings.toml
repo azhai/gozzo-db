@@ -1,9 +1,9 @@
+
 [application]
     debug        = true
     output_dir   = "./cmd/models"           #models输出目录
     data_file    = "./cmd/tmp/data.toml"    #初始化数据文件
     plural_table = false                    #表名是否使用复数
-    null_pointer = true                     #string,time字段可为NULL时，使用对应的指针类型
 
 [connections.cache]
     driver   = "redis"
@@ -26,13 +26,22 @@
     driver   = "sqlite"
     database = "./test.db"
 
-[modelRules._]
-    created_at = { type="time.Time", json="CreatedAt", comment="创建时间" }
-    updated_at = { type="time.Time", json="UpdatedAt", comment="更新时间" }
-    deleted_at = { type="*time.Time", json="DeletedAt", comment="删除时间" }
+[null_pointers.string]
+    use_pointer = true  #string字段可为NULL时，使用对应的指针类型
+    min_length  = 255
 
-[modelRules.t_user]
+[null_pointers.time]
+    use_pointer = true  #time字段可为NULL时，使用对应的指针类型
+    must_index  = true
+
+[model_rules._]
+    created_at = { type="time.Time", json="-", comment="创建时间" }
+    updated_at = { type="time.Time", json="-", comment="更新时间" }
+    deleted_at = { type="*time.Time", json="-", comment="删除时间" }
+
+[model_rules.t_user]
     password   = { json="-", comment="密码" }
 
-[modelRules.t_group]
+[model_rules.t_group]
     gid   = { name="GID", comment="唯一ID" }
+

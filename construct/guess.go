@@ -75,11 +75,11 @@ func GuessStructTags(ci *schema.ColumnInfo) *SqlTag {
 	if ci.Comment != "" {
 		tag.Set("comment", common.WrapWith(ci.Comment, "'", "'"))
 	}
-	
+
 	// 可能为char、text类型
 	size := ci.GetSize()
 	if strings.HasPrefix(ci.FullType, "char") && size < 100 {
-		tag.Set("type", ci.FullType) 
+		tag.Set("type", ci.FullType)
 	} else if strings.HasPrefix(ci.FullType, "enum") {
 		tag.Set("type", ci.FullType)
 	} else if strings.HasPrefix(ci.FullType, "set") {

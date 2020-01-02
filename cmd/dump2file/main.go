@@ -10,9 +10,9 @@ import (
 )
 
 var (
-	outFile, srcFile    string // 数据源文件与输出文件
-	outLimit            int    // 每张表输出前几行
-	verbose             bool   // 详细输出
+	outFile, srcFile string // 数据源文件与输出文件
+	outLimit         int    // 每张表输出前几行
+	verbose          bool   // 详细输出
 )
 
 // NOTE: 编译依赖于gen2model生成的models
@@ -22,9 +22,8 @@ func main() {
 	flag.StringVar(&srcFile, "sf", "", "数据源文件")
 	flag.IntVar(&outLimit, "ol", -1, "每张表输出前几行")
 	flag.BoolVar(&verbose, "vv", false, "输出详细信息")
-	flag.Parse()
+	conf, db := cmd.Initialize(nil)
 
-	conf, db := cmd.Initialize()
 	if outFile == "" {
 		outFile = conf.Application.DataFile
 	}

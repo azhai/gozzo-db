@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 	"text/template"
@@ -27,12 +28,12 @@ const (
 )
 
 var (
-	TemplateNotFound = errors.New("template not found")
-	TemplateModeIntros = map[uint]string {
-		MODE_SAFE: "安全模式，与 5 类似，但会在每个文件名前面加一个下划线",
-		MODE_INIT: "只生成 init.go 文件",
-		MODE_TWO_FILES: "除了 init.go 文件， table 和 query 都放入 tables.go 中",
-		MODE_THREE_FILES: "除了 init.go 文件， table 都放入 tables.go 中， query 都放入 queries.go 中",
+	TemplateNotFound   = errors.New("template not found")
+	TemplateModeIntros = map[uint]string{
+		MODE_SAFE:         "安全模式，与 5 类似，但会在每个文件名前面加一个下划线",
+		MODE_INIT:         "只生成 init.go 文件",
+		MODE_TWO_FILES:    "除了 init.go 文件， table 和 query 都放入 tables.go 中",
+		MODE_THREE_FILES:  "除了 init.go 文件， table 都放入 tables.go 中， query 都放入 queries.go 中",
 		MODE_QUERY_DISTRI: "除了 init.go 文件， table 都放入 tables.go 中， query 分开放入对应模型名文件中",
 		MODE_TABLE_DISTRI: "除了 init.go 文件， table 和 query 一起放入对应模型名文件中",
 	}
@@ -63,8 +64,10 @@ func CreateModels(conf *Config, db *gorm.DB, mode uint) (names []string, err err
 	// 模板
 	var funcMap = template.FuncMap{
 		"GetRule":       GetRule,
-		"GenNameType":   GenNameType,
 		"GenTagComment": GenTagComment,
+		"GenNameType": func(col *schema.ColumnInfo, rule RuleConfig) string {
+			return GenNameType(col, rule, conf.NullPointers)
+		},
 	}
 	var tpl, tpl2 *template.Template
 	if mode != MODE_INIT {
@@ -117,8 +120,7 @@ func CreateModels(conf *Config, db *gorm.DB, mode uint) (names []string, err err
 		data := map[string]interface{}{
 			"Name": name, "Table": tbInfo,
 			"Columns": s.GetColumnInfos(tableName, ""),
-			"Rules": conf.GetRules(tbInfo.TableName),
-			"NullPointer": conf.Application.NullPointer,
+			"Rules":   conf.GetRules(tbInfo.TableName),
 		}
 		if mode == MODE_SAFE || mode == MODE_TABLE_DISTRI {
 			buf.Reset()
@@ -135,7 +137,7 @@ func CreateModels(conf *Config, db *gorm.DB, mode uint) (names []string, err err
 			}
 		}
 		// 写入文件
-		fname := fmt.Sprintf("%s/%s%s.go", outDir, filePre,  strings.ToLower(name))
+		fname := fmt.Sprintf("%s/%s%s.go", outDir, filePre, strings.ToLower(name))
 		if mode == MODE_SAFE || mode == MODE_TABLE_DISTRI {
 			err = WriteModelFile(buf, fname)
 		} else {
@@ -195,7 +197,8 @@ func GenInitFile(conf *Config, names []string, mode uint) (err error) {
 func WriteModelFile(buf bytes.Buffer, fname string) (err error) {
 	// 写入文件
 	cs := rewrite.NewCodeSource()
-	if err = cs.SetPackage("models"); err != nil {
+	ns := filepath.Base(fname)
+	if err = cs.SetPackage(ns); err != nil {
 		return
 	}
 	// 添加可能引用的包，后面再尝试删除不一定会用的包
@@ -217,7 +220,8 @@ func WriteModelFile(buf bytes.Buffer, fname string) (err error) {
 func WriteInitFile(buf bytes.Buffer, fname, driverName string) (err error) {
 	// 写入文件
 	cs := rewrite.NewCodeSource()
-	if err = cs.SetPackage("models"); err != nil {
+	ns := filepath.Base(fname)
+	if err = cs.SetPackage(ns); err != nil {
 		return
 	}
 	// 以下包在默认模板都会引用
@@ -241,14 +245,14 @@ func WriteInitFile(buf bytes.Buffer, fname, driverName string) (err error) {
 	return err
 }
 
-func GenNameType(col *schema.ColumnInfo, rule RuleConfig, nullPointer bool) string {
+func GenNameType(col *schema.ColumnInfo, rule RuleConfig, nps map[string]NullPointer) string {
 	if rule.Name == "" {
 		rule.Name = ToCamel(col.FieldName)
 	}
 	if rule.Type == "" {
 		rule.Type = base.GuessTypeName(col)
-		if nullPointer && !col.IsNotNull() {
-			if rule.Type == "string" || rule.Type == "time.Time" {
+		if !col.IsNotNull() && len(nps) > 0 {
+			if NullPointerMatch(nps, rule, col) {
 				rule.Type = "*" + rule.Type // 字段可为NULL时，使用对应的指针类型
 			}
 		}

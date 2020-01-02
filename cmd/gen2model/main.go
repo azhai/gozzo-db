@@ -22,13 +22,13 @@ var mode uint
 // 根据数据表结构生成对应的Model代码
 func main() {
 	flag.UintVar(&mode, "mode", 0, "生成文件不同结构，可选 0-5 ，具体参考说明")
-	flag.Parse()
-	if mode >= 6 {
-		fmt.Println("没有这种模式，可选 0-5 ，具体参考说明")
-		return
-	}
+	conf, db := cmd.Initialize(func() error{
+		if mode >= 6 {
+			return fmt.Errorf("没有这种模式，可选 0-5 ，具体参考说明")
+		}
+		return nil
+	})
 
-	conf, db := cmd.Initialize()
 	outDir := conf.Application.OutputDir
 	prepare.MkdirForFile(fmt.Sprintf("%s/init.go", outDir))
 	names, err := prepare.CreateModels(conf, db, mode)

@@ -1,6 +1,8 @@
 package construct
 
 import (
+	"time"
+
 	"github.com/jinzhu/gorm"
 )
 
@@ -33,6 +35,15 @@ type Model struct {
 
 func (Model) TableComment() string {
 	return ""
+}
+
+/**
+ * 时间相关的三个典型字段
+ */
+type TimeMixin struct {
+	CreatedAt time.Time  `json:"-" gorm:"comment:'创建时间'"`       // 创建时间
+	UpdatedAt time.Time  `json:"-" gorm:"comment:'更新时间'"`       // 更新时间
+	DeletedAt *time.Time `json:"-" gorm:"index;comment:'删除时间'"` // 删除时间
 }
 
 // 忽略表中无数据的错误

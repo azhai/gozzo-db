@@ -50,4 +50,3 @@ func MkdirForFile(path string) int64 {
 	}
 	return size
 }
-

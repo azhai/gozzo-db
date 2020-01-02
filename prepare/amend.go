@@ -130,7 +130,7 @@ type BaseModel = base.Model
 			if kind == "func" {
 				name := node.GetName()
 				if !strings.HasSuffix(name, "TableName") &&
-						!strings.HasSuffix(name, "TableComment") {
+					!strings.HasSuffix(name, "TableComment") {
 					continue
 				}
 			} else if kind == "type.struct" {

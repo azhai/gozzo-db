@@ -22,9 +22,8 @@ func main() {
 	flag.StringVar(&targetDir, "td", "cmd/tmp/", "临时目录")
 	flag.StringVar(&baseName, "bn", "BaseModel", "基础Model名")
 	flag.BoolVar(&verbose, "vv", false, "输出详细信息")
-	flag.Parse()
+	conf, db := cmd.Initialize(nil)
 
-	conf, db := cmd.Initialize()
 	// 创建表结构
 	drv := conf.GetDriverName("default")
 	db = models.MigrateTables(drv, db)

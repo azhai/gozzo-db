@@ -33,7 +33,6 @@ type AppConfig struct {
 	OutputDir   string `toml:"output_dir"`   // 输出目录，例如 models
 	DataFile    string `toml:"data_file"`    // 数据文件，例如 data.toml
 	PluralTable bool   `toml:"plural_table"` // 表名使用复数形式
-	NullPointer bool   `toml:"null_pointer"` // 字段可为NULL时，使用对应的指针类型
 }
 
 // 连接配置
@@ -41,6 +40,38 @@ type ConnConfig struct {
 	Driver string `toml:"driver"`
 	Prefix string `toml:"prefix"`
 	schema.ConnParams
+}
+
+// NULL字段使用指针类型
+type NullPointer struct {
+	UsePointer bool `toml:"use_pointer"` // 是否使用指针类型
+	MustIndex  bool `toml:"must_index"`  // 如果使用指针类型，字段必须是索引
+	MinLength  int  `toml:"min_length"`  // 如果使用指针类型，字段长度最少为多大
+}
+
+func (np NullPointer) MatchCond(col *schema.ColumnInfo) bool {
+	if np.MustIndex && !col.IsIndex() {
+		return false
+	}
+	return col.GetSize() >= np.MinLength
+}
+
+func NullPointerMatch(nps map[string]NullPointer, rule RuleConfig, col *schema.ColumnInfo) bool {
+	switch rule.Type {
+	case "int", "uint", "int64", "uint64":
+		if np, ok := nps["int"]; ok && np.UsePointer {
+			return np.MatchCond(col)
+		}
+	case "string":
+		if np, ok := nps["string"]; ok && np.UsePointer {
+			return np.MatchCond(col)
+		}
+	case "time.Time":
+		if np, ok := nps["time"]; ok && np.UsePointer {
+			return np.MatchCond(col)
+		}
+	}
+	return false
 }
 
 // 规则配置
@@ -63,11 +94,12 @@ func GetRule(rules TableRuleConfig, name string) RuleConfig {
 
 // 配置
 type Config struct {
-	FileName    string // 文件名
-	ConnName    string // 连接名
-	Application AppConfig
-	Connections map[string]ConnConfig
-	ModelRules  map[string]TableRuleConfig
+	FileName     string // 文件名
+	ConnName     string // 连接名
+	Application  AppConfig
+	Connections  map[string]ConnConfig
+	NullPointers map[string]NullPointer     `toml:"null_pointers"`
+	ModelRules   map[string]TableRuleConfig `toml:"model_rules"`
 }
 
 func (c Config) GetDriverName(name string) string {

@@ -4,7 +4,6 @@ var templates = map[string]string{
 	// table 文件模板
 	"gen_table.tmpl": `
 {{$rules := .Rules}}
-{{$np := .NullPointer}}
 // {{.Table.TableComment}}
 type {{.Name}} struct {
 	BaseModel
@@ -12,7 +11,7 @@ type {{.Name}} struct {
 	{{- if eq .FieldName "id" }}
 	{{- else }}
 		{{- $rule := GetRule $rules .FieldName}}
-		{{GenNameType . $rule $np}} {{GenTagComment . $rule}}
+		{{GenNameType . $rule}} {{GenTagComment . $rule}}
 	{{- end }}
 {{- end }}
 }
@@ -26,7 +25,6 @@ func ({{.Name}}) TableName() string {
 func ({{.Name}}) TableComment() string {
 	return "{{.Table.TableComment}}"
 }`,
-
 
 	// query 文件模板
 	"gen_query.tmpl": `
@@ -44,7 +42,6 @@ func (m {{.Name}}) GetOne(filters ...base.FilterFunc) (obj *{{.Name}}, err error
 	err = IgnoreNotFoundError(err)
 	return
 }`,
-
 
 	// init 文件模板
 	"gen_init.tmpl": `
