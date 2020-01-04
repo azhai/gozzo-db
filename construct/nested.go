@@ -5,24 +5,24 @@ import (
 )
 
 // 嵌套集合树
-type NestedNode struct {
+type NestedModel struct {
 	Lft   uint  `json:"-" gorm:"not null;default:0;comment:'左边界'"`          // 左边界
 	Rgt   uint  `json:"-" gorm:"not null;index;default:0;comment:'右边界'"`    // 右边界
 	Depth uint8 `json:"depth" gorm:"not null;index;default:1;comment:'高度'"` // 高度
 }
 
 // 是否叶子节点
-func (n NestedNode) IsLeaf() bool {
+func (n NestedModel) IsLeaf() bool {
 	return n.Rgt-n.Lft == 1
 }
 
 // 有多少个子孙节点
-func (n NestedNode) CountChildren() int {
+func (n NestedModel) CountChildren() int {
 	return int(n.Rgt-n.Lft-1) / 2
 }
 
 // 找出所有直系祖先节点
-func (n NestedNode) AncestorsFilter(Backward bool) FilterFunc {
+func (n NestedModel) AncestorsFilter(Backward bool) FilterFunc {
 	return func(query *gorm.DB) *gorm.DB {
 		query = query.Where("rgt > ? AND lft < ?", n.Rgt, n.Lft)
 		if Backward { // 从子孙往祖先方向排序，即时间倒序
@@ -34,7 +34,7 @@ func (n NestedNode) AncestorsFilter(Backward bool) FilterFunc {
 }
 
 // 找出所有子孙节点
-func (n NestedNode) ChildrenFilter(rank uint8) FilterFunc {
+func (n NestedModel) ChildrenFilter(rank uint8) FilterFunc {
 	return func(query *gorm.DB) *gorm.DB {
 		if n.Rgt > 0 && n.Lft > 0 { // 当前不是第0层，即具体某分支以下的节点
 			query = query.Where("rgt < ? AND lft > ?", n.Rgt, n.Lft)
@@ -51,7 +51,7 @@ func (n NestedNode) ChildrenFilter(rank uint8) FilterFunc {
 }
 
 // 添加到父节点最末，tbQuery一定要使用db.Table(...)
-func (n *NestedNode) AddToParent(parent *NestedNode, tbQuery *gorm.DB) error {
+func (n *NestedModel) AddToParent(parent *NestedModel, tbQuery *gorm.DB) error {
 	var query = tbQuery.Order("rgt DESC")
 	if parent == nil {
 		n.Depth = 1
@@ -60,7 +60,7 @@ func (n *NestedNode) AddToParent(parent *NestedNode, tbQuery *gorm.DB) error {
 		query = query.Where("rgt < ? AND lft > ?", parent.Rgt, parent.Lft)
 	}
 	query = query.Where("depth = ?", n.Depth)
-	sibling := new(NestedNode)
+	sibling := new(NestedModel)
 	err := query.Take(&sibling).Error
 	if err = IgnoreNotFoundError(err); err != nil {
 		return err

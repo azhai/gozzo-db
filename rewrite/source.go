@@ -75,7 +75,7 @@ func (cs *CodeSource) WriteTo(filename string) error {
 	}
 	code, err = format.Source(code) // 格式化代码
 	if err != nil {
-		return err
+		fmt.Println(err)
 	}
 	// imports分组排序
 	var dst []byte

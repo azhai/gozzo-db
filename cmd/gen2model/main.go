@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/azhai/gozzo-db/cmd"
+	"github.com/azhai/gozzo-db/construct"
 	"github.com/azhai/gozzo-db/prepare"
 )
 
@@ -38,5 +39,11 @@ func main() {
 	err = prepare.GenInitFile(conf, names, mode)
 	if err != nil {
 		fmt.Println(err)
+	}
+
+	construct.ScanModelDir(outDir)
+	fmt.Println("=====================================")
+	for _, c := range construct.ModelClasses {
+		fmt.Println(c)
 	}
 }

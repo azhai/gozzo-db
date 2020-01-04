@@ -6,9 +6,9 @@ var templates = map[string]string{
 {{$rules := .Rules}}
 // {{.Table.TableComment}}
 type {{.Name}} struct {
-	BaseModel
 {{- range .Columns }}
 	{{- if eq .FieldName "id" }}
+		BaseModel
 	{{- else }}
 		{{- $rule := GetRule $rules .FieldName}}
 		{{GenNameType . $rule}} {{GenTagComment . $rule}}

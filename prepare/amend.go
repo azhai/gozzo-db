@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/azhai/gozzo-db/construct"
 	"github.com/azhai/gozzo-db/rewrite"
 	"github.com/azhai/gozzo-db/schema"
 	"github.com/azhai/gozzo-utils/filesystem"
@@ -108,7 +109,7 @@ import (
 type BaseModel = base.Model
 `
 	data = fmt.Sprintf(data, filepath.Base(opts.TargetDir))
-	files, _ := FindFiles(opts.SourceDir, ".go")
+	files, _ := construct.FindFiles(opts.SourceDir, ".go")
 	for fname, _ := range files {
 		if verbose {
 			fmt.Println(fname)

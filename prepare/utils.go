@@ -2,15 +2,12 @@ package prepare
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"strings"
-
 	"github.com/azhai/gozzo-utils/filesystem"
 	"github.com/codemodus/kace"
 	"github.com/go-errors/errors"
 	"github.com/jinzhu/inflection"
+	"os"
+	"path/filepath"
 )
 
 const DIR_MODE = 0777
@@ -52,22 +49,4 @@ func MkdirForFile(path string) int64 {
 		_ = os.MkdirAll(dir, DIR_MODE)
 	}
 	return size
-}
-
-// 遍历目录下的文件
-func FindFiles(dir, ext string) (map[string]os.FileInfo, error) {
-	files, err := ioutil.ReadDir(dir)
-	if err != nil {
-		return nil, err
-	}
-	var result = make(map[string]os.FileInfo)
-	for _, file := range files {
-		fname := file.Name()
-		if !strings.HasSuffix(fname, ext) {
-			continue
-		}
-		fname = filepath.Join(dir, fname)
-		result[fname] = file
-	}
-	return result, nil
 }
