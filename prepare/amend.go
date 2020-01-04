@@ -108,16 +108,8 @@ import (
 type BaseModel = base.Model
 `
 	data = fmt.Sprintf(data, filepath.Base(opts.TargetDir))
-	files, err := ioutil.ReadDir(opts.SourceDir)
-	if !CheckError(err) {
-		return
-	}
-	for _, file := range files {
-		fname := file.Name()
-		if !strings.HasSuffix(fname, ".go") {
-			continue
-		}
-		fname = filepath.Join(opts.SourceDir, fname)
+	files, _ := FindFiles(opts.SourceDir, ".go")
+	for fname, _ := range files {
 		if verbose {
 			fmt.Println(fname)
 		}

@@ -197,7 +197,7 @@ func GenInitFile(conf *Config, names []string, mode uint) (err error) {
 func WriteModelFile(buf bytes.Buffer, fname string) (err error) {
 	// 写入文件
 	cs := rewrite.NewCodeSource()
-	ns := filepath.Base(fname)
+	ns := filepath.Base(filepath.Dir(fname))
 	if err = cs.SetPackage(ns); err != nil {
 		return
 	}
@@ -220,7 +220,7 @@ func WriteModelFile(buf bytes.Buffer, fname string) (err error) {
 func WriteInitFile(buf bytes.Buffer, fname, driverName string) (err error) {
 	// 写入文件
 	cs := rewrite.NewCodeSource()
-	ns := filepath.Base(fname)
+	ns := filepath.Base(filepath.Dir(fname))
 	if err = cs.SetPackage(ns); err != nil {
 		return
 	}
