@@ -38,6 +38,18 @@ gen2model -f settings.toml -d default -mode 0 -v
 * 4  除了 init.go 文件， table 都放入 tables.go 中， query 分开放入对应模型名文件中
 * 5  除了 init.go 文件， table 和 query 一起放入对应模型名文件中
 
+## opt2model
+
+优化Model之间的组合功能
+
+例如某个 Model 中含有下面三个时间字段，并且类型一致，将被替换为 base.TimeModel
+
+```go
+CreatedAt time.Time
+UpdatedAt time.Time
+DeletedAt *time.Time
+```
+
 ## sync2table
 
 从代码中同步到数据表中，包括缺少的字段、索引和改动的注释
