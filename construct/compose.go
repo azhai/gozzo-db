@@ -3,6 +3,7 @@ package construct
 import (
 	"bytes"
 	"fmt"
+	"go/ast"
 	"sort"
 	"strings"
 	"time"
@@ -104,7 +105,19 @@ func (s *ClassSummary) ParseFields(cp *rewrite.CodeParser, node *rewrite.DeclNod
 	return size
 }
 
-func ReplaceModel(summary, sub ClassSummary) ClassSummary {
+func ReplaceModelFields(cp *rewrite.CodeParser, node *rewrite.DeclNode, summary ClassSummary) {
+	var last ast.Node
+	max := len(node.Fields) - 1
+	first, lastField := ast.Node(node.Fields[0]), node.Fields[max]
+	if lastField.Comment != nil {
+		last = ast.Node(lastField.Comment)
+	} else {
+		last = ast.Node(lastField)
+	}
+	cp.AddReplace(first, last, summary.GetInnerCode())
+}
+
+func ReplaceSummary(summary, sub ClassSummary) ClassSummary {
 	var features, lines []string
 	find := false
 	sted := sub.GetSortedFeatures()
@@ -131,6 +144,7 @@ func ScanModelDir(dir string) {
 			fmt.Println(fname, " error: ", err)
 			continue
 		}
+		var changed bool
 		for _, node := range cp.AllDeclNode("type") {
 			if len(node.Fields) == 0 {
 				continue
@@ -143,7 +157,7 @@ func ScanModelDir(dir string) {
 				continue
 			}
 			summary := NewClassSummary(name)
-			size := summary.ParseFields(cp, node)
+			_ = summary.ParseFields(cp, node)
 			for n, sub := range ModelClasses {
 				if n == summary.Name {
 					continue
@@ -151,18 +165,21 @@ func ScanModelDir(dir string) {
 				sted := sub.GetSortedFeatures()
 				sorted := summary.GetSortedFeatures()
 				if IsSubsetList(sted, sorted) {
-					summary = ReplaceModel(summary, sub)
+					summary = ReplaceSummary(summary, sub)
 				} else if strings.HasPrefix(n, "base.") || n == summary.Name {
 					continue
 				} else if IsSubsetList(sorted, sted) {
-					ModelClasses[n] = ReplaceModel(sub, summary)
+					ModelClasses[n] = ReplaceSummary(sub, summary)
 				}
 			}
 			ModelClasses[name] = summary
-			if summary.IsChanged && size > 0 {
-				// cp.ReplaceCode(node.Fields[0], node.Fields[size-1], summary.GetInnerCode())
+			if summary.IsChanged {
+				changed = true
+				ReplaceModelFields(cp, node, summary)
 			}
 		}
-		// cp.WriteSource(fname)
+		if changed {
+			_ = cp.WriteSource(fname)
+		}
 	}
 }

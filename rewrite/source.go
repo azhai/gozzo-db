@@ -9,6 +9,7 @@ import (
 	"go/printer"
 	"go/token"
 	"io/ioutil"
+	"sort"
 
 	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/imports"
@@ -24,10 +25,17 @@ func PrintNodes(objs ...interface{}) {
 	}
 }
 
+// 替换位置
+type PosAlt struct {
+	Pos, End  token.Position
+	Alternate []byte
+}
+
 type CodeSource struct {
-	Fileast *ast.File
-	Fileset *token.FileSet
-	Source  []byte
+	Fileast    *ast.File
+	Fileset    *token.FileSet
+	Source     []byte
+	Alternates []PosAlt // Source 只能替换一次，然后必须重新解析 Fileast
 	*printer.Config
 }
 
@@ -114,27 +122,50 @@ func (cs *CodeSource) GetComment(c *ast.CommentGroup, trim bool) string {
 	return comment
 }
 
-func (cs *CodeSource) ReplaceCode(first, last ast.Node, code string) {
+func (cs *CodeSource) AddReplace(first, last ast.Node, code string) {
 	// 请先保证 first, last 不是 nil
 	pos := cs.Fileset.PositionFor(first.Pos(), false)
 	end := cs.Fileset.PositionFor(last.End(), false)
-	temp := append(cs.Source[:pos.Offset], []byte(code)...)
-	cs.Source = append(temp, cs.Source[end.Offset:]...)
+	alt := PosAlt{Pos: pos, End: end, Alternate: []byte(code)}
+	cs.Alternates = append(cs.Alternates, alt)
 }
 
-func (cs *CodeSource) write(filename string, code []byte) (err error) {
+func (cs *CodeSource) AltSource() ([]byte, bool) {
+	if len(cs.Alternates) == 0 {
+		return cs.Source, false
+	}
+	sort.Slice(cs.Alternates, func(i, j int) bool {
+		return cs.Alternates[i].Pos.Offset < cs.Alternates[j].Pos.Offset
+	})
+	var chunks [][]byte
+	start, stop := 0, 0
+	for _, alt := range cs.Alternates {
+		start = alt.Pos.Offset
+		chunks = append(chunks, cs.Source[stop:start])
+		chunks = append(chunks, alt.Alternate)
+		stop = alt.End.Offset
+	}
+	if stop < len(cs.Source) {
+		chunks = append(chunks, cs.Source[stop:])
+	}
+	cs.Alternates = make([]PosAlt, 0)
+	return bytes.Join(chunks, nil), true
+}
+
+func (cs *CodeSource) write(filename string, code []byte) ([]byte, error) {
+	var err error
 	if code, err = format.Source(code); err != nil { // 格式化代码
-		return
+		return code, err
 	}
 	if err = ioutil.WriteFile(filename, code, 0644); err != nil {
-		return
+		return code, err
 	}
 	var dst []byte // imports分组排序
 	if dst, err = imports.Process(filename, code, nil); err != nil {
-		return
+		return code, err
 	}
 	err = ioutil.WriteFile(filename, dst, 0644)
-	return
+	return code, err
 }
 
 func (cs *CodeSource) WriteTo(filename string) error {
@@ -142,9 +173,14 @@ func (cs *CodeSource) WriteTo(filename string) error {
 	if err != nil {
 		return err
 	}
-	return cs.write(filename, code)
+	_, err = cs.write(filename, code)
+	return err
 }
 
 func (cs *CodeSource) WriteSource(filename string) error {
-	return cs.write(filename, cs.Source)
+	if code, chg := cs.AltSource(); chg {
+		cs.SetSource(code)
+	}
+	_, err := cs.write(filename, cs.Source)
+	return err
 }
