@@ -22,11 +22,10 @@ const (
 // 删除所有空白，包括中间的
 func RemoveSpaces(s string) string {
 	subs := map[string]string{
-		" ":"", "\n":"", "\r":"", "\t":"", "\v":"", "\f":"",
+		" ": "", "\n": "", "\r": "", "\t": "", "\v": "", "\f": "",
 	}
 	return ReplaceWith(s, subs)
 }
-
 
 // 一一对应进行替换，次序不定（因为map的关系）
 func ReplaceWith(s string, subs map[string]string) string {
@@ -40,7 +39,6 @@ func ReplaceWith(s string, subs map[string]string) string {
 	replacer := strings.NewReplacer(marks...)
 	return replacer.Replace(s)
 }
-
 
 // 比较是否相符
 func StringMatch(a, b string, cmp int) bool {
@@ -76,7 +74,6 @@ func InStringList(x string, lst []string, cmp int) bool {
 	return i < size && StringMatch(x, lst[i], cmp)
 }
 
-
 // 是否在字符串列表中，比较方式是有任何一个开头符合
 func StartStringList(x string, lst []string) bool {
 	return InStringList(x, lst, CMP_STRING_STARTSWITH)
@@ -108,5 +105,3 @@ func FindFiles(dir, ext string) (map[string]os.FileInfo, error) {
 	}
 	return result, nil
 }
-
-

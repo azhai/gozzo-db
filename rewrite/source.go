@@ -83,6 +83,14 @@ func (cs *CodeSource) GetPackage() string {
 	return ""
 }
 
+func (cs *CodeSource) GetPackageOffset() int {
+	if cs.Fileast != nil {
+		pos := cs.Fileast.Name.End()
+		return cs.Fileset.PositionFor(pos, false).Offset
+	}
+	return 0
+}
+
 func (cs *CodeSource) SetPackage(name string) (err error) {
 	if cs.Fileast == nil {
 		code := fmt.Sprintf("package %s", name)
@@ -183,4 +191,27 @@ func (cs *CodeSource) WriteSource(filename string) error {
 	}
 	_, err := cs.write(filename, cs.Source)
 	return err
+}
+
+func WithImports(pkg string, source []byte, imports map[string]string) (*CodeSource, error) {
+	cs := NewCodeSource()
+	if err := cs.SetPackage(pkg); err != nil {
+		return cs, err
+	}
+	// 添加可能引用的包，后面再尝试删除不一定会用的包
+	for imp, alias := range imports {
+		cs.AddImport(imp, alias)
+	}
+	if err := cs.AddCode(source); err != nil {
+		return cs, err
+	}
+	for imp, alias := range imports {
+		cs.DelImport(imp, alias)
+	}
+	return cs, nil
+}
+
+func ResetImports(cs *CodeSource, imports map[string]string) (*CodeSource, error) {
+	pkg, offset := cs.GetPackage(), cs.GetPackageOffset()
+	return WithImports(pkg, cs.Source[offset:], imports)
 }

@@ -138,13 +138,14 @@ func ReplaceSummary(summary, sub ClassSummary) ClassSummary {
 
 func ScanModelDir(dir string) {
 	files, _ := FindFiles(dir, ".go")
-	for fname, _ := range files {
+	for fname := range files {
 		cp, err := rewrite.NewFileParser(fname)
 		if err != nil {
 			fmt.Println(fname, " error: ", err)
 			continue
 		}
 		var changed bool
+		imports := make(map[string]string)
 		for _, node := range cp.AllDeclNode("type") {
 			if len(node.Fields) == 0 {
 				continue
@@ -166,6 +167,7 @@ func ScanModelDir(dir string) {
 				sorted := summary.GetSortedFeatures()
 				if IsSubsetList(sted, sorted) {
 					summary = ReplaceSummary(summary, sub)
+					imports[sub.Import] = sub.Alias
 				} else if strings.HasPrefix(n, "base.") || n == summary.Name {
 					continue
 				} else if IsSubsetList(sorted, sted) {
@@ -180,6 +182,8 @@ func ScanModelDir(dir string) {
 		}
 		if changed {
 			_ = cp.WriteSource(fname)
+			cs, _ := rewrite.ResetImports(cp.CodeSource, imports)
+			_ = cs.WriteTo(fname)
 		}
 	}
 }

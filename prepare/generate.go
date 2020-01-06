@@ -194,54 +194,37 @@ func GenInitFile(conf *Config, names []string, mode uint) (err error) {
 	return WriteInitFile(buf, fname, driverName)
 }
 
-func WriteModelFile(buf bytes.Buffer, fname string) (err error) {
-	// 写入文件
-	cs := rewrite.NewCodeSource()
+func WriteModelFile(buf bytes.Buffer, fname string) error {
 	ns := filepath.Base(filepath.Dir(fname))
-	if err = cs.SetPackage(ns); err != nil {
-		return
+	imports := map[string]string{
+		"database/sql":                        "",
+		"time":                                "",
+		"github.com/azhai/gozzo-db/construct": "base",
+		"github.com/jinzhu/gorm":              "",
 	}
-	// 添加可能引用的包，后面再尝试删除不一定会用的包
-	cs.AddImport("database/sql", "")
-	cs.AddImport("time", "")
-	cs.AddImport("github.com/azhai/gozzo-db/construct", "base")
-	cs.AddImport("github.com/jinzhu/gorm", "")
-	if err = cs.AddCode(buf.Bytes()); err != nil {
-		return
+	cs, err := rewrite.WithImports(ns, buf.Bytes(), imports)
+	if err == nil {
+		err = cs.WriteTo(fname)
 	}
-	// 尝试删除，已用到的包不会被删除
-	cs.DelImport("database/sql", "")
-	cs.DelImport("time", "")
-	cs.DelImport("github.com/jinzhu/gorm", "")
-	err = cs.WriteTo(fname)
-	return
+	return err
 }
 
-func WriteInitFile(buf bytes.Buffer, fname, driverName string) (err error) {
-	// 写入文件
-	cs := rewrite.NewCodeSource()
+func WriteInitFile(buf bytes.Buffer, fname, driverName string) error {
 	ns := filepath.Base(filepath.Dir(fname))
-	if err = cs.SetPackage(ns); err != nil {
-		return
+	imports := map[string]string{
+		"log":                                 "",
+		"os":                                  "",
+		"github.com/azhai/gozzo-db/cache":     "",
+		"github.com/azhai/gozzo-db/construct": "base",
+		"github.com/azhai/gozzo-db/export":    "",
+		"github.com/azhai/gozzo-db/prepare":   "",
+		"github.com/jinzhu/gorm":              "",
+		"github.com/jinzhu/gorm/dialects/" + driverName: "_",
 	}
-	// 以下包在默认模板都会引用
-	cs.AddImport("log", "")
-	cs.AddImport("os", "")
-	cs.AddImport("github.com/azhai/gozzo-db/construct", "base")
-	cs.AddImport("github.com/azhai/gozzo-db/cache", "")
-	cs.AddImport("github.com/azhai/gozzo-db/export", "")
-	cs.AddImport("github.com/azhai/gozzo-db/prepare", "")
-	cs.AddImport("github.com/jinzhu/gorm", "")
-	cs.AddImport("github.com/jinzhu/gorm/dialects/"+driverName, "_")
-	if err = cs.AddCode(buf.Bytes()); err != nil {
-		return
+	cs, err := rewrite.WithImports(ns, buf.Bytes(), imports)
+	if err == nil {
+		err = cs.WriteTo(fname)
 	}
-	// 尝试删除，已用到的包不会被删除
-	cs.DelImport("github.com/jinzhu/gorm", "")
-	cs.DelImport("github.com/azhai/gozzo-db/cache", "")
-	cs.DelImport("github.com/azhai/gozzo-db/export", "")
-	cs.DelImport("github.com/azhai/gozzo-db/prepare", "")
-	err = cs.WriteTo(fname)
 	return err
 }
 

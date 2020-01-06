@@ -110,7 +110,7 @@ type BaseModel = base.Model
 `
 	data = fmt.Sprintf(data, filepath.Base(opts.TargetDir))
 	files, _ := construct.FindFiles(opts.SourceDir, ".go")
-	for fname, _ := range files {
+	for fname := range files {
 		if verbose {
 			fmt.Println(fname)
 		}
