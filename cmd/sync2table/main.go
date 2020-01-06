@@ -22,7 +22,11 @@ func main() {
 	flag.StringVar(&targetDir, "td", "cmd/tmp/", "临时目录")
 	flag.StringVar(&baseName, "bn", "BaseModel", "基础Model名")
 	flag.BoolVar(&verbose, "vv", false, "输出详细信息")
-	conf, db := cmd.Initialize(nil)
+	conf := cmd.Initialize(nil)
+	db, err := cmd.ConnectDatabase(conf, conf.ConnName)
+	if err != nil || db == nil {
+		panic(err)
+	}
 
 	// 创建表结构
 	drv := conf.GetDriverName("default")
@@ -35,7 +39,7 @@ func main() {
 		OnlyTableComment: onlyTableComment,
 	}
 	opts.TablePrefix = conf.GetTablePrefix(conf.ConnName)
-	err := prepare.AmendComments(db.DB(), opts, verbose)
+	err = prepare.AmendComments(db.DB(), opts, verbose)
 	if err != nil {
 		fmt.Println(err)
 		return

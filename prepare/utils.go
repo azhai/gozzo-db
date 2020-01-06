@@ -2,12 +2,13 @@ package prepare
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/azhai/gozzo-utils/filesystem"
 	"github.com/codemodus/kace"
 	"github.com/go-errors/errors"
 	"github.com/jinzhu/inflection"
-	"os"
-	"path/filepath"
 )
 
 const DIR_MODE = 0777

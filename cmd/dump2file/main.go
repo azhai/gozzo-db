@@ -22,13 +22,17 @@ func main() {
 	flag.StringVar(&srcFile, "sf", "", "数据源文件")
 	flag.IntVar(&outLimit, "ol", -1, "每张表输出前几行")
 	flag.BoolVar(&verbose, "vv", false, "输出详细信息")
-	conf, db := cmd.Initialize(nil)
+	conf := cmd.Initialize(nil)
+	db, err := cmd.ConnectDatabase(conf, conf.ConnName)
+	if err != nil || db == nil {
+		panic(err)
+	}
 
 	if outFile == "" {
 		outFile = conf.Application.DataFile
 	}
 	if srcFile != "" { // 导入数据
-		_, err := export.LoadFileData(db, srcFile, models.ModelInsts, verbose)
+		_, err = export.LoadFileData(db, srcFile, models.ModelInsts, verbose)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -38,7 +42,7 @@ func main() {
 		for _, m := range models.ModelInsts {
 			ep.AddQueryResult(m, db.Limit(outLimit))
 		}
-		if err := ep.WriteTo(outFile); err != nil {
+		if err = ep.WriteTo(outFile); err != nil {
 			fmt.Println(err)
 		}
 	}

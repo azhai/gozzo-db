@@ -20,29 +20,15 @@ var (
 	verbose  bool   // 详细输出
 )
 
-func ConnectDatabase(conf *prepare.Config, name string) (*gorm.DB, error) {
-	// 连接数据库生成models
-	db, err := gorm.Open(conf.GetDSN(name))
-	if err != nil {
-		return nil, err
-	}
-	if verbose {
-		db = db.Debug().LogMode(true)
-		db.SetLogger(log.New(os.Stdout, "\r\n", 0))
-	}
-	return db, nil
-}
-
 // 初始化，解析配置和连接数据库
-func Initialize(parse func() error) (*prepare.Config, *gorm.DB) {
+func Initialize(parse func() error) *prepare.Config {
 	flag.StringVar(&connName, "d", "default", "数据库连接名")
 	flag.StringVar(&fileName, "f", "settings.toml", "配置文件名")
 	flag.BoolVar(&verbose, "v", false, "输出详细信息")
 	flag.Parse()
 	if parse != nil {
 		if err := parse(); err != nil {
-			fmt.Println(err.Error())
-			return nil, nil
+			panic(err)
 		}
 	}
 
@@ -55,10 +41,18 @@ func Initialize(parse func() error) (*prepare.Config, *gorm.DB) {
 		panic(err)
 	}
 	conf.ConnName = connName
-	var db *gorm.DB
-	db, err = ConnectDatabase(conf, conf.ConnName)
-	if err != nil || db == nil {
-		panic(err)
+	return conf
+}
+
+func ConnectDatabase(conf *prepare.Config, name string) (*gorm.DB, error) {
+	// 连接数据库生成models
+	db, err := gorm.Open(conf.GetDSN(name))
+	if err != nil {
+		return nil, err
 	}
-	return conf, db
+	if verbose {
+		db = db.Debug().LogMode(true)
+		db.SetLogger(log.New(os.Stdout, "\r\n", 0))
+	}
+	return db, nil
 }
