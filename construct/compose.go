@@ -3,6 +3,7 @@ package construct
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -52,10 +53,11 @@ var ModelClasses = map[string]ClassSummary{
 }
 
 type ClassSummary struct {
-	Name          string
-	Import, Alias string
-	Features        []string
-	FieldLines      []string
+	Name           string
+	Import, Alias  string
+	Features       []string
+	sortedFeatures []string
+	FieldLines     []string
 	IsChanged      bool
 }
 
@@ -63,17 +65,20 @@ func NewClassSummary(name string) ClassSummary {
 	return ClassSummary{Name: name}
 }
 
-func (s ClassSummary) String() string {
+func (s ClassSummary) GetInnerCode() string {
 	var buf bytes.Buffer
-	sep := ""
-	if len(s.Alias) > 0 {
-		sep = " "
+	for _, line := range s.FieldLines {
+		buf.WriteString(fmt.Sprintf("\t%s\n", line))
 	}
-	buf.WriteString(fmt.Sprintf("import %s%s\"%s\"\n", s.Alias, sep, s.Import))
-	buf.WriteString(fmt.Sprintf("%s %v\n", s.Name, s.IsChanged))
-	buf.WriteString(fmt.Sprintf("%#v\n", s.Features))
-	buf.WriteString(fmt.Sprintf("%#v\n", s.FieldLines))
 	return buf.String()
+}
+
+func (s ClassSummary) GetSortedFeatures() []string {
+	if len(s.sortedFeatures) == 0 {
+		s.sortedFeatures = append([]string{}, s.Features...)
+		sort.Strings(s.sortedFeatures)
+	}
+	return s.sortedFeatures
 }
 
 func (s *ClassSummary) ParseFields(cp *rewrite.CodeParser, node *rewrite.DeclNode) int {
@@ -87,12 +92,14 @@ func (s *ClassSummary) ParseFields(cp *rewrite.CodeParser, node *rewrite.DeclNod
 			continue
 		}
 		if len(ps) == 1 {
-			s.Features[i]  = ps[0]
+			s.Features[i] = ps[0]
 		} else {
-			s.Features[i]  = ps[0] + " " + ps[1]
+			s.Features[i] = ps[0] + " " + ps[1]
 		}
-		comment := cp.GetComment(f.Comment, true)
-		s.FieldLines[i] = code + " " + comment
+		if cm := cp.GetComment(f.Comment, true); len(cm) > 0 {
+			code += " //" + cm
+		}
+		s.FieldLines[i] = code
 	}
 	return size
 }
@@ -100,8 +107,9 @@ func (s *ClassSummary) ParseFields(cp *rewrite.CodeParser, node *rewrite.DeclNod
 func ReplaceModel(summary, sub ClassSummary) ClassSummary {
 	var features, lines []string
 	find := false
+	sted := sub.GetSortedFeatures()
 	for i, ft := range summary.Features {
-		if !InStringList(ft, sub.Features, CMP_STRING_EQUAL) {
+		if !InStringList(ft, sted, CMP_STRING_EQUAL) {
 			features = append(features, ft)
 			lines = append(lines, summary.FieldLines[i])
 		} else if !find {
@@ -135,16 +143,26 @@ func ScanModelDir(dir string) {
 				continue
 			}
 			summary := NewClassSummary(name)
-			summary.ParseFields(cp, node)
-			for n, s := range ModelClasses {
-				if IsSubsetList(s.Features, summary.Features) {
-					summary = ReplaceModel(summary, s)
-				} else if !strings.HasPrefix(n, "base.") &&
-						IsSubsetList(summary.Features, s.Features) {
-					ModelClasses[n] = ReplaceModel(s, summary)
+			size := summary.ParseFields(cp, node)
+			for n, sub := range ModelClasses {
+				if n == summary.Name {
+					continue
+				}
+				sted := sub.GetSortedFeatures()
+				sorted := summary.GetSortedFeatures()
+				if IsSubsetList(sted, sorted) {
+					summary = ReplaceModel(summary, sub)
+				} else if strings.HasPrefix(n, "base.") || n == summary.Name {
+					continue
+				} else if IsSubsetList(sorted, sted) {
+					ModelClasses[n] = ReplaceModel(sub, summary)
 				}
 			}
 			ModelClasses[name] = summary
+			if summary.IsChanged && size > 0 {
+				// cp.ReplaceCode(node.Fields[0], node.Fields[size-1], summary.GetInnerCode())
+			}
 		}
+		// cp.WriteSource(fname)
 	}
 }

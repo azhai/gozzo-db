@@ -28,8 +28,8 @@ func main() {
 
 	outDir := conf.Application.OutputDir
 	construct.ScanModelDir(outDir)
-	fmt.Println("=====================================")
 	for _, c := range construct.ModelClasses {
-		fmt.Println(c)
+		fmt.Println(c.Name, ":")
+		fmt.Println(c.GetInnerCode())
 	}
 }

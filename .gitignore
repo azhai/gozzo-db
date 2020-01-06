@@ -13,5 +13,6 @@
 *.vscode
 dump2file
 gen2model
+opt2model
 sync2table
 vendor/
