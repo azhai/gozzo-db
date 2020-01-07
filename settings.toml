@@ -28,7 +28,7 @@
 
 [null_pointers.string]
     use_pointer = true  #string字段可为NULL时，使用对应的指针类型
-    min_length  = 255
+    min_length  = 61
 
 [null_pointers.time]
     use_pointer = true  #time字段可为NULL时，使用对应的指针类型

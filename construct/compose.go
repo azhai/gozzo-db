@@ -36,8 +36,8 @@ var ModelClasses = map[string]ClassSummary{
 			"DeletedAt *time.Time `json:\"-\" gorm:\"index;comment:'删除时间'\"` // 删除时间",
 		},
 	},
-	"base.NestedModel": {
-		Name:   "base.NestedModel",
+	"*base.NestedModel": {
+		Name:   "*base.NestedModel",
 		Import: "github.com/azhai/gozzo-db/construct",
 		Alias:  "base",
 		Features: []string{

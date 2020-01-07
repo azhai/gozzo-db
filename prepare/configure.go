@@ -1,6 +1,8 @@
 package prepare
 
 import (
+	"strings"
+
 	"github.com/BurntSushi/toml"
 	"github.com/azhai/gozzo-db/schema"
 	"github.com/azhai/gozzo-utils/filesystem"
@@ -49,27 +51,36 @@ type NullPointer struct {
 	MinLength  int  `toml:"min_length"`  // 如果使用指针类型，字段长度最少为多大
 }
 
-func (np NullPointer) MatchCond(col *schema.ColumnInfo) bool {
-	if np.MustIndex && !col.IsIndex() {
+func (np NullPointer) MatchCond(ci *schema.ColumnInfo) bool {
+	if np.MustIndex && !ci.IsIndex() {
 		return false
 	}
-	size := col.GetSize()
-	return size <= 0 || size >= np.MinLength
+	dbtype := strings.ToLower(ci.DatabaseTypeName())
+	if strings.HasSuffix(dbtype, "text") {
+		return true // TEXT字段
+	} else if strings.HasSuffix(dbtype, "varchar") {
+		var size int
+		if size = ci.GetSize(); size == 0 {
+			size = 255
+		}
+		return size < 0 || size >= np.MinLength
+	}
+	return false
 }
 
-func NullPointerMatch(nps map[string]NullPointer, rule RuleConfig, col *schema.ColumnInfo) bool {
+func NullPointerMatch(nps map[string]NullPointer, rule RuleConfig, ci *schema.ColumnInfo) bool {
 	switch rule.Type {
 	case "int", "uint", "int64", "uint64":
 		if np, ok := nps["int"]; ok && np.UsePointer {
-			return np.MatchCond(col)
+			return np.MatchCond(ci)
 		}
 	case "string":
 		if np, ok := nps["string"]; ok && np.UsePointer {
-			return np.MatchCond(col)
+			return np.MatchCond(ci)
 		}
 	case "time.Time":
 		if np, ok := nps["time"]; ok && np.UsePointer {
-			return np.MatchCond(col)
+			return np.MatchCond(ci)
 		}
 	}
 	return false
