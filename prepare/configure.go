@@ -53,7 +53,8 @@ func (np NullPointer) MatchCond(col *schema.ColumnInfo) bool {
 	if np.MustIndex && !col.IsIndex() {
 		return false
 	}
-	return col.GetSize() >= np.MinLength
+	size := col.GetSize()
+	return size <= 0 || size >= np.MinLength
 }
 
 func NullPointerMatch(nps map[string]NullPointer, rule RuleConfig, col *schema.ColumnInfo) bool {
