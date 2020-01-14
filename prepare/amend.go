@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/azhai/gozzo-db/construct"
 	"github.com/azhai/gozzo-db/rewrite"
 	"github.com/azhai/gozzo-db/schema"
 	"github.com/azhai/gozzo-utils/filesystem"
@@ -28,7 +27,7 @@ func AmendComments(db *sql.DB, opts Options, verbose bool) error {
 	var buf bytes.Buffer
 	tables, colDefs := FindTables(db, verbose)
 	fname := filesystem.GetAbsFile(filepath.Join(opts.TargetDir, "tables.go"))
-	if fsize := MkdirForFile(fname); fsize == 0 {
+	if fsize := filesystem.MkdirForFile(fname); fsize == 0 {
 		err := CollectCode(opts, fname, verbose)
 		if err != nil {
 			return err
@@ -109,7 +108,7 @@ import (
 type BaseModel = base.Model
 `
 	data = fmt.Sprintf(data, filepath.Base(opts.TargetDir))
-	files, _ := construct.FindFiles(opts.SourceDir, ".go")
+	files, _ := filesystem.FindFiles(opts.SourceDir, ".go")
 	for fname := range files {
 		if verbose {
 			fmt.Println(fname)

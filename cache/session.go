@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/azhai/gozzo-utils/common"
 	"github.com/azhai/gozzo-utils/rdspool"
 )
 
@@ -17,22 +16,16 @@ const (
 )
 
 var (
-	rds      rdspool.Redis
 	onlines  *RedisBackend
 	sessions = make(map[string]*RedisBackend)
 )
 
-func SetRedisBackend(rdsConn rdspool.Redis) {
-	rds = rdsConn
-	onlines = GetRedisHash(SESS_ONLINE_KEY, MAX_TIMEOUT)
-}
-
-func GetRedisHash(key string, timeout int) *RedisBackend {
+func GetRedisHash(r rdspool.Redis, key string, timeout int) *RedisBackend {
 	if sess, ok := sessions[key]; ok {
 		return sess
 	}
 	sess := NewRedisBackend(key, timeout)
-	_ = sess.SetRedisInst(rds)
+	_ = sess.SetRedisInst(r)
 	sessions[key] = sess
 	return sess
 }
@@ -46,9 +39,15 @@ func DelRedisHash(key string) bool {
 	return false
 }
 
+func InitOnlines() {
+	if onlines == nil {
+		onlines = GetRedisHash(GetRedisPool(), SESS_ONLINE_KEY, MAX_TIMEOUT)
+	}
+}
+
 func GetSession(token string) *RedisBackend {
 	key := fmt.Sprintf("%s:%s", SESS_PREFIX, token)
-	return GetRedisHash(key, SESS_TIMEOUT)
+	return GetRedisHash(GetRedisPool(), key, SESS_TIMEOUT)
 }
 
 func DelSession(token string) bool {
@@ -65,24 +64,15 @@ func SessListSplit(data string) []string {
 }
 
 // 绑定用户角色，返回旧的sid
-func BindUserRoles(sess *RedisBackend, uid string, roles []string) (string, error) {
+func (sess *RedisBackend) BindRoles(uid string, roles []string) (string, error) {
+	InitOnlines()
 	newSid := sess.GetName()
 	oldSid, _ := onlines.GetString(uid) // 用于踢掉重复登录
 	if oldSid == newSid {               // 同一个token
 		oldSid = ""
 	}
-	_, err := onlines.Set(uid, newSid)
-	_, err = sess.Set("uid", uid)
-	_, err = sess.Set("roles", SessListJoin(roles))
+	_, err := onlines.SetVal(uid, newSid)
+	_, err = sess.SetVal("uid", uid)
+	_, err = sess.SetVal("roles", SessListJoin(roles))
 	return oldSid, err
-}
-
-// 绑定用户信息
-func BindUserInfo(sess *RedisBackend, info map[string]string) error {
-	var args []string
-	for key, value := range info {
-		args = append(args, key, value)
-	}
-	_, err := sess.DoWith("HMSET", common.StrToList(args)...)
-	return err
 }

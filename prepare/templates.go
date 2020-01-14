@@ -77,7 +77,7 @@ func init() {
 	}
 	if c, ok := conf.Connections["cache"]; ok && c.Driver == "redis" {
 		rds := cache.ConnectRedisPool(c.ConnParams)
-		cache.SetRedisBackend(rds)
+		cache.SetRedisPool(rds)
 	}
 	db, err = gorm.Open(conf.GetDSN("{{.ConnName}}"))
 	if err != nil {

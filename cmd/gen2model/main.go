@@ -6,6 +6,7 @@ import (
 
 	"github.com/azhai/gozzo-db/cmd"
 	"github.com/azhai/gozzo-db/prepare"
+	"github.com/azhai/gozzo-utils/filesystem"
 )
 
 /**
@@ -35,7 +36,7 @@ func main() {
 
 	var names []string
 	outDir := conf.Application.OutputDir
-	prepare.MkdirForFile(fmt.Sprintf("%s/init.go", outDir))
+	filesystem.MkdirForFile(fmt.Sprintf("%s/init.go", outDir))
 	names, err = prepare.CreateModels(conf, db, mode)
 	if err != nil {
 		fmt.Println(err)

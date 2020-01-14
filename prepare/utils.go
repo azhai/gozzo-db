@@ -2,10 +2,7 @@ package prepare
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 
-	"github.com/azhai/gozzo-utils/filesystem"
 	"github.com/codemodus/kace"
 	"github.com/go-errors/errors"
 	"github.com/jinzhu/inflection"
@@ -37,17 +34,4 @@ func CheckError(err error) bool {
 		return false
 	}
 	return true
-}
-
-// 为文件路径创建目录
-func MkdirForFile(path string) int64 {
-	size, exists := filesystem.FileSize(path)
-	if size < 0 {
-		return size
-	}
-	if !exists {
-		dir := filepath.Dir(path)
-		_ = os.MkdirAll(dir, DIR_MODE)
-	}
-	return size
 }

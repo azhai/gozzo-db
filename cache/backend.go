@@ -10,6 +10,16 @@ import (
 	"github.com/gomodule/redigo/redis"
 )
 
+var rds *rdspool.RedisPool
+
+func GetRedisPool() *rdspool.RedisPool {
+	return rds
+}
+
+func SetRedisPool(rdsConn *rdspool.RedisPool) {
+	rds = rdsConn
+}
+
 // 缓存接口
 type ICacheBackend interface {
 	Connect(params schema.ConnParams) error
@@ -55,11 +65,11 @@ func (b *RedisBackend) Connect(params schema.ConnParams) error {
 }
 
 func (b *RedisBackend) Close() error {
-	return b.RedisHash.Inst.Close()
+	return b.RedisHash.Close()
 }
 
 func (b *RedisBackend) ClearAll() error {
-	_, err := b.RedisHash.DoWith("DEL")
+	_, err := b.RedisHash.DoCmd("DEL")
 	return err
 }
 
@@ -70,11 +80,11 @@ func (b *RedisBackend) GetName() string {
 func (b *RedisBackend) AddFlash(messages ...string) (int, error) {
 	key := fmt.Sprintf("flash:%s", b.Name)
 	args := append([]interface{}{key}, common.StrToList(messages)...)
-	return redis.Int(b.RedisHash.Inst.Do("RPUSH", args...))
+	return redis.Int(b.RedisHash.Do("RPUSH", args...))
 }
 
 // 数量n为最大取出多少条消息，-1表示所有消息
 func (b *RedisBackend) GetFlashes(n int) ([]string, error) {
 	key := fmt.Sprintf("flash:%s", b.Name)
-	return redis.Strings(b.RedisHash.Inst.Do("LRANGE", key, 0, n))
+	return redis.Strings(b.RedisHash.Do("LRANGE", key, 0, n))
 }

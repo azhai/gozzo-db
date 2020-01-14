@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/azhai/gozzo-db/rewrite"
+	"github.com/azhai/gozzo-utils/common"
+	"github.com/azhai/gozzo-utils/filesystem"
 )
 
 /**
@@ -122,7 +124,7 @@ func ReplaceSummary(summary, sub ClassSummary) ClassSummary {
 	find := false
 	sted := sub.GetSortedFeatures()
 	for i, ft := range summary.Features {
-		if !InStringList(ft, sted, CMP_STRING_EQUAL) {
+		if !common.InStringList(ft, sted, common.CMP_STRING_EQUAL) {
 			features = append(features, ft)
 			lines = append(lines, summary.FieldLines[i])
 		} else if !find {
@@ -137,7 +139,7 @@ func ReplaceSummary(summary, sub ClassSummary) ClassSummary {
 }
 
 func ScanModelDir(dir string) {
-	files, _ := FindFiles(dir, ".go")
+	files, _ := filesystem.FindFiles(dir, ".go")
 	for fname := range files {
 		cp, err := rewrite.NewFileParser(fname)
 		if err != nil {
@@ -165,12 +167,12 @@ func ScanModelDir(dir string) {
 				}
 				sted := sub.GetSortedFeatures()
 				sorted := summary.GetSortedFeatures()
-				if IsSubsetList(sted, sorted) {
+				if common.IsSubsetList(sted, sorted) {
 					summary = ReplaceSummary(summary, sub)
 					imports[sub.Import] = sub.Alias
 				} else if strings.HasPrefix(n, "base.") || n == summary.Name {
 					continue
-				} else if IsSubsetList(sorted, sted) {
+				} else if common.IsSubsetList(sorted, sted) {
 					ModelClasses[n] = ReplaceSummary(sub, summary)
 				}
 			}

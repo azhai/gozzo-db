@@ -13,6 +13,8 @@ github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRF
 github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
 github.com/azhai/gozzo-utils v0.3.5 h1:SrQyvvbAf1yMIQZ9ppI+8g+hpG7KI4swvGJWPKCh9Ek=
 github.com/azhai/gozzo-utils v0.3.5/go.mod h1:D9h1/rbtX/sZOyLI/TloxPS4tJVs9UJxfhs2H7+oSmE=
+github.com/azhai/gozzo-utils v0.3.6 h1:T0xKWHOOZbTRvYp/zq2HVJrdkAQcKDwE/Tconxc3aYo=
+github.com/azhai/gozzo-utils v0.3.6/go.mod h1:D9h1/rbtX/sZOyLI/TloxPS4tJVs9UJxfhs2H7+oSmE=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/codemodus/kace v0.5.1 h1:4OCsBlE2c/rSJo375ggfnucv9eRzge/U5LrrOZd47HA=

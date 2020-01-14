@@ -11,7 +11,7 @@ replace (
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/azhai/gozzo-utils v0.3.5
+	github.com/azhai/gozzo-utils v0.3.6
 	github.com/codemodus/kace v0.5.1
 	github.com/go-errors/errors v1.0.1
 	github.com/go-sql-driver/mysql v1.4.1
