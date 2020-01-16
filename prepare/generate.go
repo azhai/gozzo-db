@@ -212,13 +212,14 @@ func WriteModelFile(buf bytes.Buffer, fname string) error {
 func WriteInitFile(buf bytes.Buffer, fname, driverName string) error {
 	ns := filepath.Base(filepath.Dir(fname))
 	imports := map[string]string{
-		"log":                                 "",
-		"os":                                  "",
-		"github.com/azhai/gozzo-db/cache":     "",
-		"github.com/azhai/gozzo-db/construct": "base",
-		"github.com/azhai/gozzo-db/export":    "",
-		"github.com/azhai/gozzo-db/prepare":   "",
-		"github.com/jinzhu/gorm":              "",
+		"log":                                           "",
+		"os":                                            "",
+		"github.com/azhai/gozzo-db/construct":           "base",
+		"github.com/azhai/gozzo-db/export":              "",
+		"github.com/azhai/gozzo-db/prepare":             "",
+		"github.com/azhai/gozzo-db/session":             "",
+		"github.com/azhai/gozzo-utils/redisw":           "",
+		"github.com/jinzhu/gorm":                        "",
 		"github.com/jinzhu/gorm/dialects/" + driverName: "_",
 	}
 	cs, err := rewrite.WithImports(ns, buf.Bytes(), imports)

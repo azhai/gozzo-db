@@ -4,19 +4,21 @@ import (
 	"fmt"
 
 	"github.com/azhai/gozzo-utils/common"
+	"github.com/azhai/gozzo-utils/redisw"
 )
+
+const MSSQL_DEFAULT_PORT uint16 = 1433
 
 type Mssql struct {
 }
 
-func (Mssql) GetDSN(params ConnParams) (string, string) {
-	user := params.Concat(params.Username, params.Password)
-	addr := params.Concat(params.Host, params.StrPort())
+func (Mssql) GetDSN(params redisw.ConnParams) (string, string) {
 	dsn := "sqlserver://"
+	user := redisw.ConcatWith(params.Username, params.Password)
 	if user != "" {
 		dsn += user + "@"
 	}
-	dsn += addr
+	dsn += params.GetAddr("127.0.0.1", MSSQL_DEFAULT_PORT)
 	if params.Database != "" {
 		dsn += "?database" + params.Database
 	}

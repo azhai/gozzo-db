@@ -38,6 +38,8 @@
     created_at = { type="time.Time", json="-", comment="创建时间" }
     updated_at = { type="time.Time", json="-", comment="更新时间" }
     deleted_at = { type="*time.Time", json="-", comment="删除时间" }
+    granted_at = { type="time.Time", json="-", comment="授权时间" }
+    revoked_at = { type="*time.Time", json="-", comment="撤销时间" }
 
 [model_rules.t_user]
     password   = { json="-", comment="密码" }

@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+
+	"github.com/azhai/gozzo-utils/redisw"
 )
 
 var drivers = map[string]string{
@@ -35,7 +37,7 @@ var dialects = map[string]Dialect{
 type FetchFunc = func(rows *sql.Rows) (err error)
 
 type Dialect interface {
-	GetDSN(params ConnParams) (string, string)
+	GetDSN(params redisw.ConnParams) (string, string)
 	QuoteIdent(ident string) string
 	CurrDbNameSql() string
 	TableNameSql(dbname string, more bool) string

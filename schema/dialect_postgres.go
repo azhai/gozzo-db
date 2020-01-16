@@ -4,12 +4,15 @@ import (
 	"fmt"
 
 	"github.com/azhai/gozzo-utils/common"
+	"github.com/azhai/gozzo-utils/redisw"
 )
+
+const PGSQL_DEFAULT_PORT uint16 = 5432
 
 type Postgres struct {
 }
 
-func (Postgres) GetDSN(params ConnParams) (string, string) {
+func (Postgres) GetDSN(params redisw.ConnParams) (string, string) {
 	dsn := "user=" + params.Username
 	if params.Password != "" {
 		dsn += " password=" + params.Password
@@ -17,7 +20,7 @@ func (Postgres) GetDSN(params ConnParams) (string, string) {
 	if params.Host != "" {
 		dsn += " host=" + params.Host
 	}
-	if port := params.StrPort(); port != "" {
+	if port := params.StrPort(PGSQL_DEFAULT_PORT); port != "" {
 		dsn += " port=" + port
 	}
 	if params.Database != "" {

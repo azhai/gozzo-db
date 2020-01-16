@@ -4,13 +4,14 @@ import (
 	"fmt"
 
 	"github.com/azhai/gozzo-utils/common"
+	"github.com/azhai/gozzo-utils/redisw"
 )
 
 type Sqlite struct {
 }
 
-func (Sqlite) GetDSN(params ConnParams) (string, string) {
-	user := params.Concat(params.Username, params.Password)
+func (Sqlite) GetDSN(params redisw.ConnParams) (string, string) {
+	user := redisw.ConcatWith(params.Username, params.Password)
 	var dsn string
 	if user != "" {
 		dsn = user + "@"

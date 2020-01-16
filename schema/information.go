@@ -3,7 +3,6 @@ package schema
 import (
 	"database/sql"
 	"fmt"
-	"strconv"
 	"strings"
 )
 
@@ -25,30 +24,6 @@ type UnknownDriverError struct {
 
 func (e UnknownDriverError) Error() string {
 	return fmt.Sprintf("unknown database driver %s", e.Driver)
-}
-
-// 数据库连接配置
-type ConnParams struct {
-	Host     string
-	Port     int
-	Username string
-	Password string
-	Database string
-	Options  map[string]interface{}
-}
-
-func (ConnParams) Concat(master, slave string) string {
-	if slave != "" {
-		master += ":" + slave
-	}
-	return master
-}
-
-func (p ConnParams) StrPort() string {
-	if p.Port > 0 {
-		return strconv.Itoa(p.Port)
-	}
-	return ""
 }
 
 // 表名信息

@@ -4,14 +4,17 @@ import (
 	"fmt"
 
 	"github.com/azhai/gozzo-utils/common"
+	"github.com/azhai/gozzo-utils/redisw"
 )
+
+const MYSQL_DEFAULT_PORT uint16 = 3306
 
 type Mysql struct {
 }
 
-func (Mysql) GetDSN(params ConnParams) (string, string) {
-	user := params.Concat(params.Username, params.Password)
-	addr := params.Concat(params.Host, params.StrPort())
+func (Mysql) GetDSN(params redisw.ConnParams) (string, string) {
+	user := redisw.ConcatWith(params.Username, params.Password)
+	addr := params.GetAddr("127.0.0.1", MYSQL_DEFAULT_PORT)
 	dsn := user + "@"
 	if addr != "" {
 		dsn += "(" + addr + ")"

@@ -46,7 +46,8 @@ func (m {{.Name}}) GetOne(filters ...base.FilterFunc) (obj *{{.Name}}, err error
 	// init 文件模板
 	"gen_init.tmpl": `
 var (
-	db *gorm.DB // 数据库对象
+	db         *gorm.DB
+	sr         *session.SessionRegistry
 	ModelInsts = []interface{}{ // 所有Model实例
 		{{.Models}}
 	}
@@ -69,15 +70,22 @@ func QueryTable(name string) *gorm.DB {
 	return db.Table(name)
 }
 
+// 获得当前Redis
+func Redis() *redisw.RedisWrapper {
+	if sr != nil {
+		return sr.RedisWrapper
+	}
+	return nil
+}
+
 // 连接数据库
 func init() {
 	conf, err := prepare.GetConfig("{{.FileName}}")
 	if err != nil {
 		panic(err)
 	}
-	if c, ok := conf.Connections["cache"]; ok && c.Driver == "redis" {
-		rds := cache.ConnectRedisPool(c.ConnParams)
-		cache.SetRedisPool(rds)
+	if c, ok := conf.Connections["session"]; ok && c.Driver == "redis" {
+		sr = session.NewRegistry(c.ConnParams)
 	}
 	db, err = gorm.Open(conf.GetDSN("{{.ConnName}}"))
 	if err != nil {

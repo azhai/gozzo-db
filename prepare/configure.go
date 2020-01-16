@@ -6,6 +6,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/azhai/gozzo-db/schema"
 	"github.com/azhai/gozzo-utils/filesystem"
+	"github.com/azhai/gozzo-utils/redisw"
 )
 
 // 解析配置和创建日志
@@ -41,7 +42,7 @@ type AppConfig struct {
 type ConnConfig struct {
 	Driver string `toml:"driver"`
 	Prefix string `toml:"prefix"`
-	schema.ConnParams
+	redisw.ConnParams
 }
 
 // NULL字段使用指针类型

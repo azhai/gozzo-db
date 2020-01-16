@@ -4,19 +4,21 @@ import (
 	"fmt"
 
 	"github.com/azhai/gozzo-utils/common"
+	"github.com/azhai/gozzo-utils/redisw"
 )
+
+const ORACLE_DEFAULT_PORT uint16 = 1521
 
 type Oracle struct {
 }
 
-func (Oracle) GetDSN(params ConnParams) (string, string) {
-	user := params.Concat(params.Username, params.Password)
-	addr := params.Concat(params.Host, params.StrPort())
+func (Oracle) GetDSN(params redisw.ConnParams) (string, string) {
+	user := redisw.ConcatWith(params.Username, params.Password)
 	dsn := "oracle://"
 	if user != "" {
 		dsn += user + "@"
 	}
-	dsn += addr
+	dsn += params.GetAddr("127.0.0.1", ORACLE_DEFAULT_PORT)
 	if params.Database != "" {
 		dsn += "?database" + params.Database
 	}
