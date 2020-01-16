@@ -9,9 +9,6 @@ import (
 )
 
 const (
-	REDIS_DEFAULT_PORT = 6379
-	REDIS_DEFAULT_IDLE = 10
-
 	MAX_TIMEOUT     = 86400 * 30 // 接近无限时间
 	SESS_ONLINE_KEY = "onlines"  // 在线用户
 	SESS_TOKEN_KEY  = "_token_"
@@ -35,10 +32,7 @@ type SessionRegistry struct {
 }
 
 func NewRegistry(params redisw.ConnParams) *SessionRegistry {
-	if params.Port <= 0 {
-		params.Port = REDIS_DEFAULT_PORT
-	}
-	r := redisw.NewRedisPool(params, REDIS_DEFAULT_IDLE)
+	r := redisw.NewRedisPool(params, -1)
 	return &SessionRegistry{
 		sessions:     make(map[string]*Session),
 		Onlines:      redisw.NewRedisHash(r, SESS_ONLINE_KEY, MAX_TIMEOUT),
