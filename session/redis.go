@@ -99,7 +99,7 @@ func (sess *Session) GetFlashes(n int) ([]string, error) {
 }
 
 // 绑定用户角色，返回旧的sid
-func (sess *Session) BindRoles(uid string, roles []string) (string, error) {
+func (sess *Session) BindRoles(uid string, roles []string, kick bool) (string, error) {
 	newSid := sess.GetKey()
 	oldSid, _ := sess.reg.Onlines.GetString(uid) // 用于踢掉重复登录
 	if oldSid == newSid {                        // 同一个token
@@ -108,5 +108,8 @@ func (sess *Session) BindRoles(uid string, roles []string) (string, error) {
 	_, err := sess.reg.Onlines.SetVal(uid, newSid)
 	_, err = sess.SetVal("uid", uid)
 	_, err = sess.SetVal("roles", SessListJoin(roles))
+	if kick && oldSid != "" { // 清空旧的session
+		sess.reg.Delete(oldSid)
+	}
 	return oldSid, err
 }

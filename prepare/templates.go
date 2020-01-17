@@ -70,12 +70,9 @@ func QueryTable(name string) *gorm.DB {
 	return db.Table(name)
 }
 
-// 获得当前缓存
-func Redis() *redisw.RedisWrapper {
-	if sr == nil {
-		return nil
-	}
-	return sr.RedisWrapper
+// 获得当前会话管理器
+func Registry() *session.SessionRegistry {
+	return sr
 }
 
 // 获得用户会话
