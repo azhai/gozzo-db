@@ -2,6 +2,8 @@ package prepare
 
 import (
 	"fmt"
+	"io"
+	"log"
 
 	"github.com/codemodus/kace"
 	"github.com/go-errors/errors"
@@ -34,4 +36,23 @@ func CheckError(err error) bool {
 		return false
 	}
 	return true
+}
+
+// gorm 之前版本（v1.9.11）日志没有在各部分中间加空格
+type Logger struct {
+	Space string
+	*log.Logger
+}
+
+func NewLogger(out io.Writer, space string) *Logger {
+	logger := log.New(out, "\r\n", log.LstdFlags)
+	return &Logger{space, logger}
+}
+
+func (l *Logger) Print(v ...interface{}) {
+	var vv []interface{}
+	for _, x := range v {
+		vv = append(vv, x, l.Space)
+	}
+	l.Output(2, fmt.Sprint(vv...))
 }

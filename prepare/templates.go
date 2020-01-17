@@ -70,12 +70,20 @@ func QueryTable(name string) *gorm.DB {
 	return db.Table(name)
 }
 
-// 获得当前Redis
+// 获得当前缓存
 func Redis() *redisw.RedisWrapper {
-	if sr != nil {
-		return sr.RedisWrapper
+	if sr == nil {
+		return nil
 	}
-	return nil
+	return sr.RedisWrapper
+}
+
+// 获得用户会话
+func Session(token string) *session.Session {
+	if sr == nil {
+		return nil
+	}
+	return sr.GetSession(token)
 }
 
 // 连接数据库
@@ -95,7 +103,7 @@ func init() {
 	// 初始化数据库
 	if conf.Application.Debug {
 		db = db.Debug().LogMode(true)
-		db.SetLogger(log.New(os.Stdout, "\r\n", 0))
+		db.SetLogger(prepare.NewLogger(os.Stdout, " "))
 	}
 	drv := conf.GetDriverName("{{.ConnName}}")
 	if drv == "mysql" {

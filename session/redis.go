@@ -46,7 +46,7 @@ func (sr SessionRegistry) GetKey(token string) string {
 
 func (sr *SessionRegistry) GetSession(token string) *Session {
 	key := sr.GetKey(token)
-	if sess, ok := sr.sessions[key]; ok {
+	if sess, ok := sr.sessions[key]; ok && sess != nil {
 		return sess
 	}
 	sess := NewSession(sr, key)
