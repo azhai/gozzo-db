@@ -78,7 +78,7 @@ func Registry() *session.SessionRegistry {
 // 获得用户会话
 func Session(token string) *session.Session {
 	if sr == nil {
-		return nil
+		panic(fmt.Errorf("Can not find the redis connection named 'cache' !"))
 	}
 	return sr.GetSession(token)
 }
@@ -89,7 +89,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	if c, ok := conf.Connections["session"]; ok && c.Driver == "redis" {
+	if c, ok := conf.Connections["cache"]; ok && c.Driver == "redis" {
 		sr = session.NewRegistry(c.ConnParams)
 	}
 	db, err = gorm.Open(conf.GetDSN("{{.ConnName}}"))
