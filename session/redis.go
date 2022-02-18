@@ -32,7 +32,7 @@ type SessionRegistry struct {
 }
 
 func NewRegistry(params redisw.ConnParams) *SessionRegistry {
-	r := redisw.NewRedisPool(params, -1)
+	r := redisw.NewRedisPoolParams(params, -1)
 	return &SessionRegistry{
 		sessions:     make(map[string]*Session),
 		Onlines:      redisw.NewRedisHash(r, SESS_ONLINE_KEY, MAX_TIMEOUT),
